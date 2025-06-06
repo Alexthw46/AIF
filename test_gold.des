@@ -1,0 +1,19 @@
+MAZE:"gold_maze", ' '
+FLAGS: premapped
+GEOMETRY:center,center
+MAP
+|------------------|
+|..|.....|.....|..>|
+|..|.---.|.---.|...|
+|..|.|...|...|.|...|
+|....|.......|.....|
+|------------------
+ENDMAP
+
+OBJECT:'$', (2,1)
+OBJECT:'$', (5,2)
+OBJECT:'$', (8,3)
+OBJECT:'$', (11,1)
+OBJECT:'$', (14,2)
+OBJECT:'$', (17,3)
+STAIR:(19,1), down

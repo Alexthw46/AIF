@@ -1,0 +1,26 @@
+
+MAZE: "mylevel", ' '
+FLAGS:premapped
+INIT_MAP: solidfill,' '
+GEOMETRY:center,center
+MAP
+---------------------- 
+|..L.......L......L...|
+|..L..LLL..L.LLL..L...|
+|..L..L....L...L..L...|
+|.....L........L......|
+---------------------- 
+ENDMAP
+REGION:(0,0,23,6),lit,"ordinary"
+GOLD: 1,(16, 4)
+GOLD: 1,(9, 3)
+GOLD: 1,(7, 1)
+GOLD: 1,(16, 1)
+GOLD: 1,(3, 4)
+GOLD: 1,(14, 4)
+GOLD: 1,(10, 4)
+GOLD: 1,(10, 2)
+GOLD: 1,(21, 3)
+GOLD: 1,(1, 2)
+STAIR:(20, 3),down
+BRANCH:(0,0,2,2),(0,0,0,0)

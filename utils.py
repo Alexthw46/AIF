@@ -12,7 +12,7 @@ def get_target_location(game_map: np.ndarray, symbol : str = ">") -> Tuple[int, 
     return x[0], y[0]
 
 def is_wall(position_element: int) -> bool:
-    obstacles = "|- "
+    obstacles = "|-} "
     return chr(position_element) in obstacles
 
 def get_valid_moves(game_map: np.ndarray, current_position: Tuple[int, int]) -> List[Tuple[int, int]]:
@@ -21,7 +21,7 @@ def get_valid_moves(game_map: np.ndarray, current_position: Tuple[int, int]) -> 
     x, y = current_position    
     # North
     if y - 1 > 0 and not is_wall(game_map[x, y-1]):
-        valid.append((x, y-1)) 
+        valid.append((x, y-1))
     # East
     if x + 1 < x_limit and not is_wall(game_map[x+1, y]):
         valid.append((x+1, y)) 
