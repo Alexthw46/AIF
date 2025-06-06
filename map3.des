@@ -12,12 +12,16 @@ MAP
 --------------------
 ENDMAP
 REGION:(0,0,20,6),lit,"ordinary"
-GOLD: 1,(2, 1)
+GOLD: 1,(8, 1)
+GOLD: 1,(11, 3)
+GOLD: 1,(1, 1)
+GOLD: 1,(2, 2)
+GOLD: 1,(12, 3)
+GOLD: 1,(4, 4)
+GOLD: 1,(8, 2)
 GOLD: 1,(5, 2)
-GOLD: 1,(8, 3)
-GOLD: 1,(11, 2)
-GOLD: 1,(14, 1)
-GOLD: 1,(17, 3)
+GOLD: 1,(18, 3)
+GOLD: 1,(9, 3)
 TRAP:"pit",(4, 1)
 TRAP:"pit",(7, 2)
 TRAP:"pit",(10, 3)

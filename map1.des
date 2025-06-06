@@ -16,14 +16,15 @@ MAP
 --------------------
 ENDMAP
 REGION:(0,0,20,10),lit,"ordinary"
-GOLD: 1,random
-GOLD: 2,random
-GOLD: 3,random
-GOLD: 4,random
-GOLD: 5,random
-GOLD: 6,random
-GOLD: 7,random
-GOLD: 8,random
-GOLD: 9,random
+GOLD: 1,(11, 8)
+GOLD: 1,(6, 2)
+GOLD: 1,(2, 2)
+GOLD: 1,(14, 4)
+GOLD: 1,(12, 1)
+GOLD: 1,(1, 1)
+GOLD: 1,(17, 4)
+GOLD: 1,(18, 3)
+GOLD: 1,(15, 5)
+GOLD: 1,(8, 4)
 STAIR:(18, 7),down
 BRANCH:(0,0,2,2),(0,0,0,0)

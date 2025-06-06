@@ -62,7 +62,7 @@ def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]
     print("Target node not found!")
     return []
 
-def a_star_gold(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], h: callable, gold_bonus: float = 1.5) -> List[Tuple[int, int]]:
+def a_star_gold(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], h: callable, gold_bonus: float = 1.5):
     from queue import PriorityQueue
 
     open_list = PriorityQueue()
@@ -94,20 +94,19 @@ def a_star_gold(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int,
             # Base movement cost
             neighbor_g = current_cost + 1
 
-            # Bonus for standing on gold
             if game_map[neighbor] == ord('$'):
-                neighbor_g -= gold_bonus  # more attractive
-            # Bonus for being adjacent to gold
-            else:
-                for dx in [-1, 0, 1]:
-                    for dy in [-1, 0, 1]:
-                        if dx == 0 and dy == 0:
-                            continue
-                        nx, ny = neighbor[0] + dx, neighbor[1] + dy
-                        if 0 <= nx < game_map.shape[0] and 0 <= ny < game_map.shape[1]:
-                            if game_map[nx, ny] == ord('$'):
-                                neighbor_g -= gold_bonus / 2  # less than standing on it
-                                break
+                neighbor_g -= gold_bonus * 1.5  # strong bonus
+
+            # Always check surrounding tiles, even if gold is on current tile
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    if dx == 0 and dy == 0:
+                        continue
+                    nx, ny = neighbor[0] + dx, neighbor[1] + dy
+                    if 0 <= nx < game_map.shape[0] and 0 <= ny < game_map.shape[1]:
+                        if game_map[nx, ny] == ord('$'):
+                            neighbor_g -= gold_bonus * 0.75  # still a big draw
+                            break
 
             neighbor_h = h(neighbor, target)
             neighbor_f = neighbor_g + neighbor_h
