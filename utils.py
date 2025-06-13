@@ -69,33 +69,54 @@ def manhattan_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
     x2, y2 = point2
     return abs(x1 - x2) + abs(y1 - y2)
 
-def randomize_gold_positions(
-        map_str, min_x, min_y, max_x, max_y, num_gold
+def randomize_apple_positions(
+        map_str, min_x, min_y, max_x, max_y, num_apple
 ):
     """
-    Randomizes gold positions in a given map string.
+    Randomizes apple positions in a given map string.
 
     Args:
         map_str (str): The map in string representation.
-        min_x (int): Minimum x-coordinate for gold placement.
-        min_y (int): Minimum y-coordinate for gold placement.
-        max_x (int): Maximum x-coordinate for gold placement.
-        max_y (int): Maximum y-coordinate for gold placement.
-        num_gold (int): Number of gold piles to place.
+        min_x (int): Minimum x-coordinate for apple placement.
+        min_y (int): Minimum y-coordinate for apple placement.
+        max_x (int): Maximum x-coordinate for apple placement.
+        max_y (int): Maximum y-coordinate for apple placement.
+        num_apple (int): Number of apple piles to place.
 
     Returns:
-        list: A list of tuples representing the positions of the gold piles.
+        list: A list of tuples representing the positions of the apple piles.
     """
     import random
 
-    gold_positions = []
+    apple_positions = []
     lines = map_str.split('\n')
     print(f"y {len(lines)}, x: {len(lines[0])}")
-    while len(gold_positions) < num_gold:
+    while len(apple_positions) < num_apple:
         x = random.randint(min_x, max_x)
         y = random.randint(min_y, max_y)
-        if (x, y) not in gold_positions:
+        if (x, y) not in apple_positions:
             if lines[y][x] == '.':
-                gold_positions.append((x, y))
+                apple_positions.append((x, y))
 
-    return gold_positions
+    return apple_positions
+
+
+def print_path_on_map(game_map: np.ndarray, path: List[Tuple[int, int]]):
+    path_set = set(path)
+    for y in range(game_map.shape[0]):
+        row = ""
+        for x in range(game_map.shape[1]):
+            pos = (y, x)
+            char = chr(game_map[y, x])
+            if pos == path[0]:
+                row += "@"
+            elif pos == path[-1]:
+                row += ">"
+            elif pos in path_set:
+                if char == '%':
+                    row += "A" # collected apple
+                else:
+                    row += "*" # part of the path
+            else:
+                row += char
+        print(row)

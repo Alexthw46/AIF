@@ -3,19 +3,19 @@
 ## 🎯 Project Overview
 
 This project explores classical Artificial Intelligence (GOFAI) search (and planning algorithms??) within the [MiniHack](https://minihack.readthedocs.io/en/latest/) environment, a reinforcement learning platform built on top of NetHack. 
-Our objective is to design a custom dungeon-like environment containing **gold** (reward) and **monsters** (threats), and evaluate different **search algorithms** to complete a task: **collect all gold while avoiding monsters**.
+Our objective is to design a custom dungeon-like environment containing **apple** (reward) and **monsters** (threats), and evaluate different **search algorithms** to complete a task: **collect all apple while avoiding monsters**.
 
 ## 🧪 Task Description
 
 The agent starts in a procedurally generated maze populated with:
-- 🟡 **Gold tiles** to collect (positive reward)
+- 🟡 **apple tiles** to collect (positive reward)
 - 👾 **Monsters** to avoid (negative consequence or terminal state)
 
-The challenge is to **plan a safe and optimal path** to collect all gold using only classical search algorithms—no learning involved.
+The challenge is to **plan a safe and optimal path** to collect all apple using only classical search algorithms—no learning involved.
 
 ## 🛠️ What We Do
 
-- 🔧 **Custom Environment Design**: We define a personalized MiniHack map with structured room layouts, gold locations, and monster hazards.
+- 🔧 **Custom Environment Design**: We define a personalized MiniHack map with structured room layouts, apple locations, and monster hazards.
 - 🔍 **Algorithm Implementation**: We implement and test multiple search-based planning algorithms:
   - **Breadth-First Search (BFS)**
   - **A\* Search**
@@ -26,7 +26,7 @@ The challenge is to **plan a safe and optimal path** to collect all gold using o
   - Success rate
   - Time to plan
   - Path length
-  - Gold collected
+  - apple collected
 
 ## 📁 Project Structure
 
