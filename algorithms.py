@@ -93,3 +93,32 @@ def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]
 
     print("Target node not found!")
     return None
+
+def find_path_with_apples(game_map, start, apples, target, h):
+    path = []
+    current = start
+    apples = apples.copy()
+    
+    while apples:
+        # Find closest apple
+        apples.sort(key=lambda apple: h(current, apple))
+        next_apple = apples.pop(0)
+        
+        subpath = a_star(game_map, current, next_apple, h)
+        if not subpath:
+            return None
+        
+        if path:
+            path += subpath[1:]  # avoid duplicating current
+        else:
+            path += subpath
+            
+        current = next_apple
+
+    # Finally go to target
+    subpath = a_star(game_map, current, target, h)
+    if not subpath:
+        return None
+
+    path += subpath[1:]  # avoid duplicate position
+    return path
