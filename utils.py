@@ -3,6 +3,7 @@ import math
 
 from typing import Tuple, List
 
+directions = ["UP", "RIGHT", "DOWN", "LEFT"]
 
 def get_player_location(game_map: np.ndarray, symbol: str = "@") -> Tuple[int, int]:
     x, y = np.where(game_map == ord(symbol))
@@ -28,26 +29,22 @@ def get_valid_moves(game_map: np.ndarray, current_position: Tuple[int, int], avo
     if y - 1 > 0 and not is_wall(game_map[x, y - 1]):
         if not (avoid_stairs and game_map[x, y - 1] == ord('>')):
             valid.append((x, y - 1))
-        else:
-            print("Avoiding stairs at", (x, y - 1))
+
     # East
     if x + 1 < x_limit and not is_wall(game_map[x + 1, y]):
         if not (avoid_stairs and game_map[x + 1, y] == ord('>')):
             valid.append((x + 1, y))
-        else:
-            print("Avoiding stairs at", (x + 1, y))
+
     # South
     if y + 1 < y_limit and not is_wall(game_map[x, y + 1]):
         if not (avoid_stairs and game_map[x, y + 1] == ord('>')):
             valid.append((x, y + 1))
-        else:
-            print("Avoiding stairs at", (x, y + 1))
+
     # West
     if x - 1 > 0 and not is_wall(game_map[x - 1, y]):
         if not (avoid_stairs and game_map[x - 1, y] == ord('>')):
             valid.append((x - 1, y))
-        else:
-            print("Avoiding stairs at", (x - 1, y))
+
     return valid
 
 
@@ -142,3 +139,17 @@ def print_path_on_map(game_map: np.ndarray, path: List[Tuple[int, int]]):
             else:
                 row += char
         print(row)
+
+def simulate_path(path, game_map, actions):
+    """ Simulate the path on the game map and print the actions taken.
+    """
+    print("Actions to take:", list((map(lambda x: directions[x], actions))))
+    # check how much apple is collected in the path
+    apple_collected = []
+    for (x, y) in path:
+        if chr(game_map[x, y]) == '%' and (x, y) not in apple_collected:
+            apple_collected.append((x, y))
+    apple_collected = len(apple_collected)
+    print("Apple collected in the path:", apple_collected)
+    print("Expected Reward: ", 1 + apple_collected * 0.75 - 0.1 * len(path))
+    print_path_on_map(game_map, path)

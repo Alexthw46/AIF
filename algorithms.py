@@ -1,10 +1,9 @@
-import numpy as np
-
 from collections import deque
 from queue import PriorityQueue
-from utils import get_valid_moves
-from typing import Tuple, List, Set
+from typing import Set
+
 from utils import *
+
 
 def build_path(parent: dict, target: Tuple[int, int]) -> List[Tuple[int, int]]:
     path = []
@@ -14,7 +13,8 @@ def build_path(parent: dict, target: Tuple[int, int]) -> List[Tuple[int, int]]:
     path.reverse()
     return path
 
-def bfs(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]) -> List[Tuple[int, int]]:
+
+def bfs(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]) -> list[tuple[int, int]] | None:
     # Create a queue for BFS and mark the start node as visited
     queue = deque()
     visited = set()
@@ -44,9 +44,11 @@ def bfs(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]) -
     print("Target node not found!")
     return None
 
+
 # ---------------------------------------------
 
-def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], h: callable) -> List[Tuple[int, int]]:
+def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], h: callable) -> list[tuple[
+    int, int]] | None:
     # initialize open and close list
     open_list = PriorityQueue()
     close_list = []
@@ -68,7 +70,7 @@ def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]
         close_list.append(current)
 
         if current == target:
-            print("Target found!")
+            # print("Target found!")
             path = build_path(parent, target)
             return path
 
@@ -87,7 +89,7 @@ def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]
                 # if neighbor_g is greater or equal to the one in the open list, continue
                 if neighbor_g >= support_list[neighbor]:
                     continue
-            
+
             # add neighbor to open list and update support_list
             open_list.put(neighbor_entry)
             support_list[neighbor] = neighbor_g
@@ -95,25 +97,26 @@ def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]
     print("Target node not found!")
     return None
 
+
 def find_path_with_apples(game_map, start, apples, target, h):
     path = []
     current = start
     apples = apples.copy()
-    
+
     while apples:
         # Find closest apple
         apples.sort(key=lambda apple: h(current, apple))
         next_apple = apples.pop(0)
-        
+
         subpath = a_star(game_map, current, next_apple, h)
         if not subpath:
             return None
-        
+
         if path:
             path += subpath[1:]  # avoid duplicating current
         else:
             path += subpath
-            
+
         current = next_apple
 
     # Finally go to target
@@ -124,18 +127,22 @@ def find_path_with_apples(game_map, start, apples, target, h):
     path += subpath[1:]  # avoid duplicate position
     return path
 
+
 def heuristic_with_apples(current: Tuple[int, int], apples: Set[Tuple[int, int]], target: Tuple[int, int]) -> int:
     remaining = list(apples)
     if not remaining:
         return manhattan_distance(current, target)
-    
+
     # Nearest apple + apple to target (greedy approximation)
     to_apples = [manhattan_distance(current, apple) for apple in remaining]
     from_apples_to_target = [manhattan_distance(apple, target) for apple in remaining]
-    
+
     return min(to_apples) + min(from_apples_to_target)
 
-def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], apples: Set[Tuple[int, int]]) -> List[Tuple[int, int]]:
+
+def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
+                          apples: Set[Tuple[int, int]]) -> \
+        list[tuple[int, int]] | None:
     open_list = PriorityQueue()
     close_set = set()
     support_list = {}
