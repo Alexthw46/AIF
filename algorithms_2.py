@@ -45,7 +45,7 @@ def beam_search_path_planner(game_map: np.ndarray,
     paths = {}
 
     for a, b in itertools.combinations(all_points, 2):
-        path = a_star_apple(game_map, a, b, h=manhattan_distance)
+        path = a_star_apple(game_map, a, b, h=manhattan_distance, apple_bonus=apple_reward)
         if path is None:
             dist[(a, b)] = dist[(b, a)] = float('inf')
             paths[(a, b)] = paths[(b, a)] = []
@@ -101,7 +101,7 @@ def a_star_apple(
         start: Tuple[int, int],
         target: Tuple[int, int],
         h: Callable[[Tuple[int, int], Tuple[int, int]], float],
-        apple_bonus: float = 7.5
+        apple_bonus: float = 0.75
 ) -> List[Tuple[int, int]]:
     """
     A* pathfinding algorithm that prioritizes paths close to apples ('%').
