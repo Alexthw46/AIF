@@ -164,7 +164,9 @@ def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: 
         if current == target and new_collected == apples:
             return build_path(parent, (current, new_collected))
 
-        for neighbor in get_valid_moves(game_map, current):
+        is_going_to_apple = new_collected != apples
+
+        for neighbor in get_valid_moves(game_map, current, is_going_to_apple):
             neighbor_g = current_cost + 1
             neighbor_state = (neighbor, new_collected)
             if neighbor_state in support_list and neighbor_g >= support_list[neighbor_state]:
