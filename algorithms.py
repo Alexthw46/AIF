@@ -3,7 +3,8 @@ import numpy as np
 from collections import deque
 from queue import PriorityQueue
 from utils import get_valid_moves
-from typing import Tuple, List
+from typing import Tuple, List, Set
+from utils import *
 
 def build_path(parent: dict, target: Tuple[int, int]) -> List[Tuple[int, int]]:
     path = []
@@ -122,3 +123,58 @@ def find_path_with_apples(game_map, start, apples, target, h):
 
     path += subpath[1:]  # avoid duplicate position
     return path
+
+def heuristic_with_apples(current: Tuple[int, int], apples: Set[Tuple[int, int]], target: Tuple[int, int]) -> int:
+    remaining = list(apples)
+    if not remaining:
+        return manhattan_distance(current, target)
+    
+    # Nearest apple + apple to target (greedy approximation)
+    to_apples = [manhattan_distance(current, apple) for apple in remaining]
+    from_apples_to_target = [manhattan_distance(apple, target) for apple in remaining]
+    
+    return min(to_apples) + min(from_apples_to_target)
+
+def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], apples: Set[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    open_list = PriorityQueue()
+    close_set = set()
+    support_list = {}
+
+    collected = frozenset()
+    h_val = heuristic_with_apples(start, apples, target)
+    open_list.put((h_val, (start, 0, collected)))  # (f, (position, g, collected))
+    support_list[(start, collected)] = 0
+    parent = {(start, collected): None}
+
+    while not open_list.empty():
+        _, (current, current_cost, collected_apples) = open_list.get()
+        state = (current, collected_apples)
+
+        if state in close_set:
+            continue
+        close_set.add(state)
+
+        # Collect apple if at one
+        new_collected = set(collected_apples)
+        if current in apples:
+            new_collected.add(current)
+        new_collected = frozenset(new_collected)
+
+        # Goal condition
+        if current == target and new_collected == apples:
+            return build_path(parent, (current, new_collected))
+
+        for neighbor in get_valid_moves(game_map, current):
+            neighbor_g = current_cost + 1
+            neighbor_state = (neighbor, new_collected)
+            if neighbor_state in support_list and neighbor_g >= support_list[neighbor_state]:
+                continue
+
+            support_list[neighbor_state] = neighbor_g
+            parent[neighbor_state] = (current, collected_apples)
+            h_val = heuristic_with_apples(neighbor, apples - new_collected, target)
+            f_val = neighbor_g + h_val
+            open_list.put((f_val, (neighbor, neighbor_g, new_collected)))
+
+    print("Target node not reachable with all apples.")
+    return None
