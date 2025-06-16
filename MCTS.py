@@ -1,5 +1,5 @@
 import random
-from typing import Tuple, Set
+from typing import Tuple, Set, List
 
 import numpy as np
 
@@ -112,7 +112,6 @@ def backpropagate(node, reward):
         node = node.parent
 
 
-def best_path(node, target: Tuple[int, int]) -> List[Tuple[int, int]]:
 """
 def best_path(node):
     path = []
@@ -125,6 +124,9 @@ def best_path(node):
             node = None
     return path
 """
+
+def best_path(node, target: Tuple[int, int]) -> List[Tuple[int, int]]:
+
     path = [node.state[0]]
 
     while node.children:
