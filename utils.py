@@ -70,7 +70,17 @@ def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> Li
             else:
                 actions.append(action_map["S"])
         else:
-            raise Exception("x and y can't change at the same time. oblique moves not allowed!")
+            # Both x and y change, we split into two actions. But we check that they change by at most 1.
+            if abs(x_s - x) > 1 or abs(y_s - y) > 1:
+                raise Exception("Invalid path: x and y can't change by more than 1 at the same time.")
+            if x_s > x:
+                actions.append(action_map["N"])
+            elif x_s < x:
+                actions.append(action_map["S"])
+            if y_s > y:
+                actions.append(action_map["W"])
+            elif y_s < y:
+                actions.append(action_map["E"])
         x_s = x
         y_s = y
 
