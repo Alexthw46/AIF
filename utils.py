@@ -129,11 +129,13 @@ def print_path_on_map(game_map: np.ndarray, path: List[Tuple[int, int]]):
             char = chr(game_map[y, x])
             if pos == path[0]:
                 row += "@"
-            elif pos == path[-1]:
-                row += ">"
+            elif pos == path[-1] and char == '>':
+                row += "!"
             elif pos in path_set:
                 if char == '%':
                     row += "A"  # collected apple
+                elif char == '>':
+                    row += ">"
                 else:
                     row += "*"  # part of the path
             else:
