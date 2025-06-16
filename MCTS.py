@@ -13,16 +13,16 @@ class MCTSNode:
 
 def is_terminal(state, target, apples):
     pos, collected = state
-    return pos == target and collected == apples
+    return pos == target
 
 def rollout_policy(game_map, state, target, apples):
     # Random rollout policy, simulate until terminal or max steps
     pos, collected = state
     collected = set(collected)
     steps = 0
-    max_steps = 100  # limit rollout length
+    max_steps = 500  # limit rollout length
     while steps < max_steps:
-        if pos == target and collected == apples:
+        if pos == target:
             break
         moves = get_valid_moves(game_map, pos)
         if not moves:
@@ -32,11 +32,11 @@ def rollout_policy(game_map, state, target, apples):
             collected.add(pos)
         steps += 1
     # Reward for collected apples + bonus if target reached after collecting all
-    reward = len(collected)
-    if pos == target and collected == apples:
-        reward += 10  # bonus reward for full succes
+    reward = len(collected)*0.75
+    #if pos == target and collected == apples:
+    #   reward += 10  # bonus reward for full succes
     if pos == target:
-        reward += 5
+        reward += 1
     return reward  # reward = number of apples collected
 
 def tree_policy(node, game_map, target, apples):
@@ -78,6 +78,7 @@ def backpropagate(node, reward):
         node.reward += reward
         node = node.parent
 
+"""
 def best_path(node):
     path = []
     while node:
@@ -88,6 +89,29 @@ def best_path(node):
         else:
             node = None
     return path
+"""
+def best_path(node, target: Tuple[int, int]) -> List[Tuple[int, int]]:
+    path = [node.state[0]]
+
+    while node.children:
+        # Filter children that are on a valid path to the target
+        candidates = [child for child in node.children if reaches_target(child, target)]
+        if not candidates:
+            break
+        node = max(candidates, key=lambda c: c.visits)
+        path.append(node.state[0])
+
+        if node.state[0] == target:
+            break
+
+    return path
+
+def reaches_target(node: MCTSNode, target: Tuple[int, int]) -> bool:
+    """Recursively checks if any descendant of the node ends at the target."""
+    if node.state[0] == target:
+        return True
+    return any(reaches_target(child, target) for child in node.children)
+
 
 def mcts(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], apples: Set[Tuple[int, int]], iterations=1000):
     root = MCTSNode((start, frozenset()))
@@ -107,4 +131,4 @@ def mcts(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], 
         # Backpropagation
         backpropagate(node, reward)
 
-    return best_path(root)
+    return best_path(root, target)

@@ -2,21 +2,11 @@ import heapq
 import itertools
 from queue import PriorityQueue
 from typing import Tuple, List, Callable
+from algorithms import *
 
 import numpy as np
 
 from utils import get_valid_moves, manhattan_distance
-
-
-def build_path(parent: dict, target: Tuple[int, int]) -> List[Tuple[int, int]]:
-    path = []
-    while target is not None:
-        path.append(target)
-        target = parent[target]
-    path.reverse()
-    return path
-
-
 
 def beam_search_path_planner(game_map: np.ndarray,
                              start: Tuple[int, int],

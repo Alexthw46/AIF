@@ -139,16 +139,55 @@ def heuristic_with_apples(current: Tuple[int, int], apples: Set[Tuple[int, int]]
 
     return min(to_apples) + min(from_apples_to_target)
 
+def heuristic_with_apples_MST(current: Tuple[int, int], apples: Set[Tuple[int, int]], target: Tuple[int, int]) -> int:
+    points = list(apples)
+    if not points:
+        return manhattan_distance(current, target)
+
+    all_points = [current] + points + [target]
+    edges = []
+
+    # Build complete graph with manhattan distances
+    for i in range(len(all_points)):
+        for j in range(i + 1, len(all_points)):
+            p1, p2 = all_points[i], all_points[j]
+            dist = manhattan_distance(p1, p2)
+            edges.append((dist, i, j))
+
+    # Kruskal's algorithm to compute MST
+    parent = list(range(len(all_points)))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(x, y):
+        rx, ry = find(x), find(y)
+        if rx != ry:
+            parent[ry] = rx
+            return True
+        return False
+
+    mst_cost = 0
+    edges.sort()
+    for dist, i, j in edges:
+        if union(i, j):
+            mst_cost += dist
+
+    return mst_cost
+
 
 def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
-                          apples: Set[Tuple[int, int]]) -> \
+                          apples: Set[Tuple[int, int]], weight: float = 1.0) -> \
         list[tuple[int, int]] | None:
     open_list = PriorityQueue()
     close_set = set()
     support_list = {}
 
     collected = frozenset()
-    h_val = heuristic_with_apples(start, apples, target)
+    h_val = heuristic_with_apples_MST(start, apples, target)
     open_list.put((h_val, (start, 0, collected)))  # (f, (position, g, collected))
     support_list[(start, collected)] = 0
     parent = {(start, collected): None}
@@ -168,12 +207,13 @@ def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: 
         new_collected = frozenset(new_collected)
 
         # Goal condition
-        if current == target and new_collected == apples:
+        # if current == target and new_collected == apples:
+        if current == target:
             return build_path(parent, (current, new_collected))
 
-        is_going_to_apple = new_collected != apples
+        #is_going_to_apple = new_collected != apples
 
-        for neighbor in get_valid_moves(game_map, current, is_going_to_apple):
+        for neighbor in get_valid_moves(game_map, current, avoid_stairs=False):
             neighbor_g = current_cost + 1
             neighbor_state = (neighbor, new_collected)
             if neighbor_state in support_list and neighbor_g >= support_list[neighbor_state]:
@@ -182,7 +222,7 @@ def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: 
             support_list[neighbor_state] = neighbor_g
             parent[neighbor_state] = (current, collected_apples)
             h_val = heuristic_with_apples(neighbor, apples - new_collected, target)
-            f_val = neighbor_g + h_val
+            f_val = neighbor_g + weight * h_val
             open_list.put((f_val, (neighbor, neighbor_g, new_collected)))
 
     print("Target node not reachable with all apples.")
