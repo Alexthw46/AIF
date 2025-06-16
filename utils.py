@@ -5,6 +5,7 @@ from typing import Tuple, List
 
 directions = ["UP", "RIGHT", "DOWN", "LEFT"]
 
+
 def get_player_location(game_map: np.ndarray, symbol: str = "@") -> Tuple[int, int]:
     x, y = np.where(game_map == ord(symbol))
     return x[0], y[0]
@@ -69,7 +70,17 @@ def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> Li
             else:
                 actions.append(action_map["S"])
         else:
-            raise Exception("x and y can't change at the same time. oblique moves not allowed!")
+            # Both x and y change, we split into two actions. But we check that they change by at most 1.
+            if abs(x_s - x) > 1 or abs(y_s - y) > 1:
+                raise Exception("Invalid path: x and y can't change by more than 1 at the same time.")
+            if x_s > x:
+                actions.append(action_map["N"])
+            elif x_s < x:
+                actions.append(action_map["S"])
+            if y_s > y:
+                actions.append(action_map["W"])
+            elif y_s < y:
+                actions.append(action_map["E"])
         x_s = x
         y_s = y
 
@@ -89,7 +100,7 @@ def manhattan_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
 
 
 def randomize_apple_positions(
-        map_str, min_x, min_y, max_x, max_y, num_apple
+        map_str, min_x, min_y, max_x, max_y, num_apple, seed=None
 ):
     """
     Randomizes apple positions in a given map string.
@@ -106,6 +117,9 @@ def randomize_apple_positions(
         list: A list of tuples representing the positions of the apple piles.
     """
     import random
+
+    if seed is not None:
+        random.seed(seed)
 
     apple_positions = []
     lines = map_str.split('\n')
@@ -129,16 +143,19 @@ def print_path_on_map(game_map: np.ndarray, path: List[Tuple[int, int]]):
             char = chr(game_map[y, x])
             if pos == path[0]:
                 row += "@"
-            elif pos == path[-1]:
-                row += ">"
+            elif pos == path[-1] and char == '>':
+                row += "!"
             elif pos in path_set:
                 if char == '%':
                     row += "A"  # collected apple
+                elif char == '>':
+                    row += ">"
                 else:
                     row += "*"  # part of the path
             else:
                 row += char
         print(row)
+
 
 def simulate_path(path, game_map, actions):
     """ Simulate the path on the game map and print the actions taken.
