@@ -91,10 +91,11 @@ def a_star_apple(
         start: Tuple[int, int],
         target: Tuple[int, int],
         h: Callable[[Tuple[int, int], Tuple[int, int]], float],
-        apple_bonus: float = 0.75
+        apple_bonus: float = 0.75,
+        weight: float = 1.0
 ) -> List[Tuple[int, int]]:
     """
-    A* pathfinding algorithm that prioritizes paths close to apples ('%').
+    A* pathfinding algorithm that prioritizes paths close to apples ('%'), optional weighted A*.
 
     Parameters:
         game_map (np.ndarray): 2D grid map with cells as ASCII codes.
@@ -102,7 +103,7 @@ def a_star_apple(
         target (Tuple[int, int]): Target coordinates.
         h (Callable): Heuristic function estimating cost from node to target.
         apple_bonus (float): Cost reduction applied for proximity to apples.
-
+        weight (float): Weight for the heuristic.
     Returns:
         List[Tuple[int, int]]: The path from start to target, empty if none found.
     """
@@ -178,8 +179,35 @@ def a_star_apple(
             if neighbor not in g_scores or tentative_g < g_scores[neighbor]:
                 g_scores[neighbor] = tentative_g
                 parent[neighbor] = current
-                f = tentative_g + h(neighbor, target)
+                f = tentative_g + h(neighbor, target) * weight
                 open_list.put((f, neighbor))
 
     # No path found
     return []
+
+import heapq
+
+def weighted_a_star(start, goal, get_neighbors, heuristic, weight=1.5):
+    open_set = []
+    heapq.heappush(open_set, (0, start))
+    came_from = {}
+    g_score = {start: 0}
+
+    while open_set:
+        _, current = heapq.heappop(open_set)
+        if current == goal:
+            # Reconstruct path
+            path = [current]
+            while current in came_from:
+                current = came_from[current]
+                path.append(current)
+            return path[::-1]
+
+        for neighbor in get_neighbors(current):
+            tentative_g = g_score[current] + 1  # or cost(current, neighbor)
+            if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                g_score[neighbor] = tentative_g
+                f_score = tentative_g + weight * heuristic(neighbor, goal)
+                heapq.heappush(open_set, (f_score, neighbor))
+                came_from[neighbor] = current
+    return None

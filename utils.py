@@ -5,6 +5,7 @@ from typing import Tuple, List
 
 directions = ["UP", "RIGHT", "DOWN", "LEFT"]
 
+
 def get_player_location(game_map: np.ndarray, symbol: str = "@") -> Tuple[int, int]:
     x, y = np.where(game_map == ord(symbol))
     return x[0], y[0]
@@ -89,7 +90,7 @@ def manhattan_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
 
 
 def randomize_apple_positions(
-        map_str, min_x, min_y, max_x, max_y, num_apple
+        map_str, min_x, min_y, max_x, max_y, num_apple, seed=None
 ):
     """
     Randomizes apple positions in a given map string.
@@ -106,6 +107,9 @@ def randomize_apple_positions(
         list: A list of tuples representing the positions of the apple piles.
     """
     import random
+
+    if seed is not None:
+        random.seed(seed)
 
     apple_positions = []
     lines = map_str.split('\n')
@@ -141,6 +145,7 @@ def print_path_on_map(game_map: np.ndarray, path: List[Tuple[int, int]]):
             else:
                 row += char
         print(row)
+
 
 def simulate_path(path, game_map, actions):
     """ Simulate the path on the game map and print the actions taken.
