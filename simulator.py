@@ -48,7 +48,7 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
 
     path = fun(game_map, start, target, set(apple_positions), **kwargs)
 
-    if path is None:
+    if len(path) == 0:
         print("No path found.")
         return 0
     else:
@@ -80,8 +80,8 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
             print(f"Episode finished:", dic)
             print("Reward:", tot_reward)
             break
-
-    return tot_reward, print_path_on_map(game_map, path)
+    print_path_on_map(game_map, path)
+    return tot_reward
 
 
 def check_and_eat_apple(state, env, apple_positions):
