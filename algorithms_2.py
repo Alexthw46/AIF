@@ -8,35 +8,39 @@ import numpy as np
 from algorithms import build_path
 from utils import get_valid_moves, manhattan_distance
 
+
 def beam_search_path_planner(game_map: np.ndarray,
                              start: Tuple[int, int],
                              target: Tuple[int, int],
-                             apples: List[Tuple[int, int]],
+                             apple_positions: Set[Tuple[int, int]],
                              beam_width: int = 3,
-                             apple_reward: float = 0.75) -> Tuple[float, List[Tuple[int, int]]]:
+                             apple_reward: float = 0.75) -> List[Tuple[int, int]]:
     """
-    Finds a path from start to target collecting apples to maximize net reward (rewards - path cost).
+    Beam search to find a path from start to target collecting apples
+    to maximize (apple rewards - path cost).
 
-    Parameters:
-    - game_map: 2D grid
-    - start: starting coordinate
-    - target: target coordinate (e.g., stairs)
-    - apples: list of apple coordinates
-    - beam_width: number of top partial paths to keep per iteration
-    - apple_reward: reward for collecting each apple
-
-    Returns:
-    - best_net: maximum net reward achieved
-    - best_path: sequence of grid coordinates from start to target
+    :param: game_map: 2D grid representing the game state.
+    :param: start: Starting coordinate (x, y).
+    :param: target: Target coordinate (x, y) to reach.
+    :param: apple_positions: Set of coordinates where apples are located.
+    :param: beam_width: Maximum number of paths to keep at each step.
+    :param: apple_reward: Reward value for each collected apple.
+    :return: List of coordinates representing the best path from start to target.
     """
-    # All key points: apples and target
-    all_points = [start] + apples + [target]
+
+    # Convert apple set to list for indexing
+    apple_positions = list(apple_positions)
+    all_points = [start] + apple_positions + [target]
+
+    # Precompute all paths and distances
     dist = {}
     paths = {}
 
     for a, b in itertools.combinations(all_points, 2):
-        path = a_star_apple(game_map, a, b, h=manhattan_distance, apple_bonus=apple_reward)
-        if path is None:
+        path = a_star_apple(game_map, a, b, h=manhattan_distance,
+                            apple_bonus=apple_reward,
+                            apple_positions=set(apple_positions))
+        if not path or len(path) < 2:
             dist[(a, b)] = dist[(b, a)] = float('inf')
             paths[(a, b)] = paths[(b, a)] = []
         else:
@@ -44,12 +48,14 @@ def beam_search_path_planner(game_map: np.ndarray,
             dist[(a, b)] = dist[(b, a)] = d
             paths[(a, b)] = paths[(b, a)] = path
 
+    # Beam entries: (net reward, total reward, cost, current position, visited apples, full path)
     beam = [(0.0, 0.0, 0.0, start, frozenset(), [start])]
     best_net = float('-inf')
     best_path: List[Tuple[int, int]] = []
 
     while beam:
         candidates = []
+
         for net, reward, cost, pos, visited, path_so_far in beam:
             if pos == target:
                 if net > best_net:
@@ -57,39 +63,57 @@ def beam_search_path_planner(game_map: np.ndarray,
                     best_path = path_so_far
                 continue
 
-            for next_pt in apples + [target]:
+            for next_pt in apple_positions + [target]:
                 if next_pt in visited and next_pt != target:
                     continue
+
+                path_segment = paths.get((pos, next_pt), [])
+                if not path_segment or len(path_segment) < 2:
+                    continue
+
+                # Ensure valid connection
+                if path_segment[0] != pos:
+                    continue
+
+                # Avoid cycles or redundant revisits
+                if any(p in path_so_far for p in path_segment[1:-1]):
+                    continue
+
                 d = dist.get((pos, next_pt), float('inf'))
                 if not np.isfinite(d):
                     continue
 
-                new_reward = reward + (apple_reward if next_pt in apples else 0.0)
+                new_reward = reward + (apple_reward if next_pt in apple_positions else 0.0)
                 new_cost = cost + d
                 new_net = new_reward - new_cost
-                new_visited = visited | {next_pt} if next_pt in apples else visited
-                new_path = path_so_far + paths[(pos, next_pt)][1:]
+                new_visited = visited | {next_pt} if next_pt in apple_positions else visited
+                new_path = path_so_far + path_segment[1:]
                 candidates.append((new_net, new_reward, new_cost, next_pt, new_visited, new_path))
 
         if not candidates:
             break
 
+        # Take top candidates by net reward
         beam = heapq.nlargest(beam_width, candidates, key=lambda x: x[0])
 
+        # Update best path if any finished at target
         for net, _, _, pos, _, path in beam:
             if pos == target and net > best_net:
                 best_net = net
                 best_path = path
 
+        # Only keep non-terminal entries in beam to allow further expansion
         beam = [entry for entry in beam if entry[3] != target]
 
-    return best_net, best_path
+    print(f"Best net reward: {best_net}, Path length: {len(best_path)}")
+    return best_path
 
 
 def a_star_apple(
         game_map: np.ndarray,
         start: Tuple[int, int],
         target: Tuple[int, int],
+        apple_positions: Set[Tuple[int, int]],
         h: Callable[[Tuple[int, int], Tuple[int, int]], float],
         apple_bonus: float = 0.75,
         weight: float = 1.0
@@ -97,19 +121,16 @@ def a_star_apple(
     """
     A* pathfinding algorithm that prioritizes paths close to apples ('%'), optional weighted A*.
 
-    Parameters:
-        game_map (np.ndarray): 2D grid map with cells as ASCII codes.
-        start (Tuple[int, int]): Starting coordinates.
-        target (Tuple[int, int]): Target coordinates.
-        h (Callable): Heuristic function estimating cost from node to target.
-        apple_bonus (float): Cost reduction applied for proximity to apples.
-        weight (float): Weight for the heuristic.
-    Returns:
-        List[Tuple[int, int]]: The path from start to target, empty if none found.
-    """
+    :param game_map: 2D grid representing the game state.
+    :param start: Starting coordinate (x, y).
+    :param target: Target coordinate (x, y) to reach.
+    :param apple_positions: Set of coordinates where apples are located.
+    :param h: Heuristic function to estimate distance to target.
+    :param apple_bonus: Bonus to reduce cost when collecting apples.
+    :param weight: Weighting factor for the heuristic.
+    :return: List of coordinates representing the path from start to target.
 
-    APPLE = ord('%')  # ASCII code for apple character
-    rows, cols = game_map.shape
+    """
 
     # Priority queue stores nodes with their f-score = g + h
     open_list = PriorityQueue()
@@ -133,9 +154,8 @@ def a_star_apple(
                 if dx == 0 and dy == 0:
                     continue  # skip the current cell itself
                 nx, ny = x + dx, y + dy
-                if 0 <= nx < rows and 0 <= ny < cols:
-                    if game_map[nx, ny] == APPLE:
-                        return True
+                if (nx, ny) in apple_positions:
+                    return True
         return False
 
     # Initial node f-score = heuristic only since g=0
@@ -168,7 +188,7 @@ def a_star_apple(
             tentative_g = current_g + 1
 
             # If neighbor is an apple, subtract stronger bonus (reduce cost)
-            if game_map[neighbor] == APPLE:
+            if neighbor in apple_positions:
                 tentative_g -= apple_bonus * 1.5
 
             # If apple is near neighbor, apply smaller bonus
@@ -185,7 +205,9 @@ def a_star_apple(
     # No path found
     return []
 
+
 import heapq
+
 
 def weighted_a_star(start, goal, get_neighbors, heuristic, weight=1.5):
     open_set = []

@@ -72,6 +72,7 @@ def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> Li
         else:
             # Both x and y change, we split into two actions. But we check that they change by at most 1.
             if abs(x_s - x) > 1 or abs(y_s - y) > 1:
+                print(f"Invalid path: {(x_s, y_s)} -> {x, y}")
                 raise Exception("Invalid path: x and y can't change by more than 1 at the same time.")
             if x_s > x:
                 actions.append(action_map["N"])
@@ -123,13 +124,18 @@ def randomize_apple_positions(
 
     apple_positions = []
     lines = map_str.split('\n')
-    print(f"y {len(lines)}, x: {len(lines[0])}")
+    print(f"Placing {num_apple} apples between ({min_x}, {min_y}) and ({max_x}, {max_y})")
     while len(apple_positions) < num_apple:
         x = random.randint(min_x, max_x)
         y = random.randint(min_y, max_y)
+        # print(f"Trying to place apple at: ({x}, {y})")
         if (x, y) not in apple_positions:
             if lines[y][x] == '.':
                 apple_positions.append((x, y))
+                print(f"Placed apple at: ({x}, {y})")
+            else:
+                continue
+                #print(f"Position ({x}, {y}) is not valid for apple placement ({lines[y][x]}).")
 
     return apple_positions
 

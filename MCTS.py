@@ -62,11 +62,12 @@ def heuristic_rollout_policy(game_map, state, target, apples):
         if pos in apples:
             collected.add(pos)
         steps += 1
-    reward = len(collected)
-    if pos == target and collected == apples:
-        reward += 10
+        # Reward for collected apples + bonus if target reached after collecting all
+    reward = len(collected) * 0.75
+    # if pos == target and collected == apples:
+    #   reward += 10  # bonus reward for full succes
     if pos == target:
-        reward += 5
+        reward += 1
     return reward
 
 

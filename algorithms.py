@@ -209,7 +209,11 @@ def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: 
         # Goal condition
         # if current == target and new_collected == apples:
         if current == target:
-            return build_path(parent, (current, new_collected))
+            path = build_path(parent, (current, new_collected))
+            # reformat path
+            path = [state[0] for state in path]
+            path = [(int(x), int(y)) for (x, y) in path]
+            return path
 
         #is_going_to_apple = new_collected != apples
 
