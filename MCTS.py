@@ -17,7 +17,7 @@ class MCTSNode:
 
 def is_terminal(state, target, apples):
     pos, collected = state
-    return pos == target
+    return pos == target and collected == apples
 
 
 def rollout_policy(game_map, state, target, apples):
@@ -25,9 +25,9 @@ def rollout_policy(game_map, state, target, apples):
     pos, collected = state
     collected = set(collected)
     steps = 0
-    max_steps = 500  # limit rollout length
+    max_steps = 50  # limit rollout length
     while steps < max_steps:
-        if pos == target:
+        if pos == target and collected == apples:
             break
         moves = get_valid_moves(game_map, pos)
         if not moves:
@@ -38,10 +38,12 @@ def rollout_policy(game_map, state, target, apples):
         steps += 1
     # Reward for collected apples + bonus if target reached after collecting all
     reward = len(collected)*0.75
-    #if pos == target and collected == apples:
-    #   reward += 10  # bonus reward for full succes
+    if pos == target and collected == apples:
+       reward += 2  # bonus reward for full succes
     if pos == target:
         reward += 1
+    if pos != target:
+        reward -= 1  # or set reward = 0
     return reward  # reward = number of apples collected
 
 
@@ -49,7 +51,7 @@ def heuristic_rollout_policy(game_map, state, target, apples):
     pos, collected = state
     collected = set(collected)
     steps = 0
-    max_steps = 100
+    max_steps = 50
     while steps < max_steps:
         if pos == target and collected == apples:
             break
@@ -63,12 +65,15 @@ def heuristic_rollout_policy(game_map, state, target, apples):
             collected.add(pos)
         steps += 1
         # Reward for collected apples + bonus if target reached after collecting all
-    reward = len(collected) * 0.75
-    # if pos == target and collected == apples:
-    #   reward += 10  # bonus reward for full succes
+    reward = len(collected)*0.75
+    #if pos == target and collected == apples:
+    #  reward += 10  # bonus reward for full succes
     if pos == target:
         reward += 1
-    return reward
+    if pos != target:
+        reward -= 1  # or set reward -= 5
+    return reward  # reward = number of apples collected
+
 
 
 def tree_policy(node, game_map, target, apples):
@@ -105,7 +110,6 @@ def expand(node, game_map, apples):
     for state in children_states:
         node.children.append(MCTSNode(state, parent=node))
 
-
 def backpropagate(node, reward):
     while node is not None:
         node.visits += 1
@@ -113,7 +117,6 @@ def backpropagate(node, reward):
         node = node.parent
 
 
-"""
 def best_path(node):
     path = []
     while node:
@@ -124,31 +127,6 @@ def best_path(node):
         else:
             node = None
     return path
-"""
-
-def best_path(node, target: Tuple[int, int]) -> List[Tuple[int, int]]:
-
-    path = [node.state[0]]
-
-    while node.children:
-        # Filter children that are on a valid path to the target
-        candidates = [child for child in node.children if reaches_target(child, target)]
-        if not candidates:
-            break
-        node = max(candidates, key=lambda c: c.visits)
-        path.append(node.state[0])
-
-        if node.state[0] == target:
-            break
-
-    return path
-
-def reaches_target(node: MCTSNode, target: Tuple[int, int]) -> bool:
-    """Recursively checks if any descendant of the node ends at the target."""
-    if node.state[0] == target:
-        return True
-    return any(reaches_target(child, target) for child in node.children)
-
 
 def mcts(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], apples: Set[Tuple[int, int]], iterations=1000, policy=rollout_policy):
     root = MCTSNode((start, frozenset()))
@@ -168,4 +146,4 @@ def mcts(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], 
         # Backpropagation
         backpropagate(node, reward)
 
-    return best_path(root, target)
+    return best_path(root)
