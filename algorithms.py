@@ -1,8 +1,10 @@
 from collections import deque
 from queue import PriorityQueue
-from typing import Set
-
+from typing import Set, Tuple, List
+from collections import defaultdict
 from utils import *
+import random
+import numpy as np
 
 
 def build_path(parent: dict, target: Tuple[int, int]) -> List[Tuple[int, int]]:
@@ -207,17 +209,16 @@ def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: 
         new_collected = frozenset(new_collected)
 
         # Goal condition
-        # if current == target and new_collected == apples:
-        if current == target:
+        if current == target and new_collected == apples:
             path = build_path(parent, (current, new_collected))
             # reformat path
             path = [state[0] for state in path]
             path = [(int(x), int(y)) for (x, y) in path]
             return path
 
-        #is_going_to_apple = new_collected != apples
+        is_going_to_apple = new_collected != apples
 
-        for neighbor in get_valid_moves(game_map, current, avoid_stairs=False):
+        for neighbor in get_valid_moves(game_map, current, avoid_stairs=is_going_to_apple):
             neighbor_g = current_cost + 1
             neighbor_state = (neighbor, new_collected)
             if neighbor_state in support_list and neighbor_g >= support_list[neighbor_state]:
@@ -230,4 +231,54 @@ def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: 
             open_list.put((f_val, (neighbor, neighbor_g, new_collected)))
 
     print("Target node not reachable with all apples.")
+    return None
+
+
+def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
+                         apples: Set[Tuple[int, int]], max_steps=5000) -> List[Tuple[int, int]] | None:
+    
+    def attractive_force(pos, goal, weight=1.0):
+        return -weight * manhattan_distance(pos, goal)
+
+    def total_potential(pos, remaining_apples, target):
+        potential = attractive_force(pos, target, weight=3.0)
+        for apple in remaining_apples:
+            potential += attractive_force(pos, apple, weight=1)
+        # Add small random noise to break ties/local minima
+        potential += random.uniform(-0.3, 0.3)
+        # Add repulsion from previous visits
+        potential -= visit_count[pos] * 2.0
+        return potential
+
+    pos = start
+    collected = set()
+    path = [pos]
+    steps = 0
+    visit_count = defaultdict(int)
+
+    while steps < max_steps:
+        steps += 1
+
+        if pos in apples:
+            collected.add(pos)
+
+        if pos == target and collected == apples:
+            return path
+
+        remaining_apples = apples - collected
+        visit_count[pos] += 1
+
+        candidates = get_valid_moves(game_map, pos)
+        if not candidates:
+            break  # dead end
+
+        best_move = max(candidates, key=lambda m: total_potential(m, remaining_apples, target))
+
+        if visit_count[best_move] > 10 or best_move == pos:
+            break  # likely stuck
+
+        pos = best_move
+        path.append(pos)
+
+    print("Failed to reach target within potential field limits.")
     return None
