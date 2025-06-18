@@ -42,9 +42,9 @@ def rollout_policy(game_map, state, target, apples):
        reward += 2  # bonus reward for full succes
     if pos == target:
         reward += 1
-    if pos != target:
+    if pos != target: # penalization if you do no reach the downstair target
         reward -= 1  # or set reward = 0
-    return reward  # reward = number of apples collected
+    return reward  
 
 
 def heuristic_rollout_policy(game_map, state, target, apples):
@@ -66,13 +66,13 @@ def heuristic_rollout_policy(game_map, state, target, apples):
         steps += 1
         # Reward for collected apples + bonus if target reached after collecting all
     reward = len(collected)*0.75
-    #if pos == target and collected == apples:
-    #  reward += 10  # bonus reward for full succes
+    if pos == target and collected == apples:
+      reward += 2  # bonus reward for full succes
     if pos == target:
         reward += 1
-    if pos != target:
-        reward -= 1  # or set reward -= 5
-    return reward  # reward = number of apples collected
+    if pos != target: # penalization if you do no reach the downstair target
+        reward -= 1  # or set reward = 0
+    return reward
 
 
 
