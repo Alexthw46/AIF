@@ -19,9 +19,9 @@ def stairs_reward_function(env, previous_observation, action, observation):
     return 0
 
 
-def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: float = 0.5, **kwargs):
+def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: float = 0.5, cropped=True, **kwargs):
     """
-    Simulates the environment using a heuristic function.
+    Simulates the static environment using a heuristic function.
 
     Parameters:
     - env: The environment to simulate.
@@ -35,7 +35,7 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
 
     state, _ = env.reset()
     game_map = state['chars']
-    game = state['pixel']
+    game = state['pixel_crop' if cropped else 'pixel']
     start = get_player_location(game_map)
     target = get_target_location(game_map)
 
@@ -44,11 +44,11 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
 
     # zip into a list of int tuples (x, y)
     apple_positions = list(zip(apple_positions[0], apple_positions[1]))
-    print("Apple positions:", apple_positions)
+    print("Apple positions:", [(int(x), int(y)) for x, y in apple_positions])
 
     path = fun(game_map, start, target, set(apple_positions), **kwargs)
 
-    if len(path) == 0:
+    if path is None or len(path) == 0:
         print("No path found.")
         return 0
     else:
@@ -59,10 +59,11 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
     actions = actions_from_path(start, path[1:])
     simulate_path(path, game_map, actions)
 
-    image = plt.imshow(game[:, 400:850])
+    image = plt.imshow(game if cropped else game[:, 400:850])
 
     time.sleep(2)
     tot_reward = 0
+    done = False
     for action in actions:
         s, reward, done, _, dic = env.step(action)
         tot_reward += reward
@@ -72,15 +73,77 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
             tot_reward += reward
             display.display(plt.gcf())
             print("Reward:", tot_reward)
-            display.clear_output(wait=clear_outputs)
+            if clear_outputs:
+                display.clear_output(wait=True)
             time.sleep(wait_time)
-            image.set_data(s['pixel'][:, 300:975])
+            image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
             print("Action taken:", directions[action])
         else:
             print(f"Episode finished:", dic)
             print("Reward:", tot_reward)
             break
     print_path_on_map(game_map, path)
+    if not done:
+        print("Stairs were not reached.")
+    return tot_reward
+
+
+def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0.5, cropped=True, **kwargs):
+    """
+    Simulates the dynamic environment using a heuristic function.
+
+    Parameters:
+    - env: The environment to simulate.
+    - fun: The heuristic function to use for simulation. Need to follow the signature:
+        fun(game_map, start, **kwargs)
+    - kwargs: Additional keyword arguments for the heuristic function.
+
+    Returns:
+    - The result of the simulation.
+    """
+
+    state, _ = env.reset()
+    game_map = state['chars']
+    game = state['pixel_crop' if cropped else 'pixel']
+
+    image = plt.imshow(game if cropped else game[:, 400:850])
+
+    time.sleep(2)
+    tot_reward = 0
+    done = False
+    dic = {}
+    while not done:
+        start = get_player_location(game_map)
+
+        # choose a target location and path to it
+        path = fun(game_map, start, **kwargs)
+
+        actions = actions_from_path(start, path) if path is not None else []
+
+        for action in actions:
+            s, reward, done, _, dic = env.step(action)
+            tot_reward += reward
+            display.display(plt.gcf())
+            print("Reward:", tot_reward)
+            if clear_outputs:
+                display.clear_output(wait=True)
+            time.sleep(wait_time)
+            image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
+            print("Action taken:", directions[action])
+
+            if not done:
+                # check if we are on an apple and eat it
+                apple_positions = np.where(np.vectorize(chr)(s['chars']) == '%')
+                apple_positions = list(zip(apple_positions[0], apple_positions[1]))
+                s, reward, _, _, _ = check_and_eat_apple(s, env, apple_positions)
+                tot_reward += reward
+            else:
+                break
+            game_map = s['chars']
+
+    print(f"Episode finished:", dic)
+    print("Reward:", tot_reward)
+
     return tot_reward
 
 
@@ -95,6 +158,8 @@ def check_and_eat_apple(state, env, apple_positions):
 
     game_map = state['chars']
     player_location = get_player_location(game_map)
+    print(f"Player location: {player_location}")
+    print(f"Apple location: {apple_positions}")
     if player_location in apple_positions:
         # Pick up the apple
         print("Found apple at:", player_location)
@@ -149,9 +214,11 @@ def create_env(map, penalty_time: float = -0.1, apple_reward: float = 0.75) -> g
         des_file=map,
         reward_manager=reward_manager,
         observation_keys=("glyphs", "chars", "colors", 'screen_descriptions', 'inv_strs', 'blstats', 'message',
-                          'pixel'),
+                          'pixel', 'pixel_crop'),
         actions=ACTIONS,
-        penalty_time=penalty_time
+        penalty_time=penalty_time,
+        obs_crop_h=15,
+        obs_crop_w=15,
     )
 
     return env
