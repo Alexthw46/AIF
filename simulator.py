@@ -112,29 +112,31 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
     tot_reward = 0
     done = False
     dic = {}
+    s = state
     while not done:
         start = get_player_location(game_map)
 
         # choose a target location and path to it
         path = fun(game_map, start, **kwargs)
 
-        actions = actions_from_path(start, path) if path is not None else []
+        actions = actions_from_path(start, path[1:]) if path is not None else []
 
         for action in actions:
+            # check where the apples are before moving
+            apple_positions = np.where(np.vectorize(chr)(s['chars']) == '%')
+            apple_positions = list(zip(apple_positions[0], apple_positions[1]))
             s, reward, done, _, dic = env.step(action)
             tot_reward += reward
             display.display(plt.gcf())
-            print("Reward:", tot_reward)
+            time.sleep(wait_time)
             if clear_outputs:
                 display.clear_output(wait=True)
-            time.sleep(wait_time)
+            print("Reward:", tot_reward)
             image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
             print("Action taken:", directions[action])
 
             if not done:
                 # check if we are on an apple and eat it
-                apple_positions = np.where(np.vectorize(chr)(s['chars']) == '%')
-                apple_positions = list(zip(apple_positions[0], apple_positions[1]))
                 s, reward, _, _, _ = check_and_eat_apple(s, env, apple_positions)
                 tot_reward += reward
             else:
