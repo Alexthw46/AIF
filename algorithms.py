@@ -241,13 +241,13 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
         return -weight * manhattan_distance(pos, goal)
 
     def total_potential(pos, remaining_apples, target):
-        potential = attractive_force(pos, target, weight=3.0)
+        potential = attractive_force(pos, target, weight=3.5)
         for apple in remaining_apples:
-            potential += attractive_force(pos, apple, weight=1)
+            potential += attractive_force(pos, apple, weight=1.0)
         # Add small random noise to break ties/local minima
         potential += random.uniform(-0.3, 0.3)
         # Add repulsion from previous visits
-        potential -= visit_count[pos] * 2.0
+        potential -= visit_count[pos] * 2
         return potential
 
     pos = start
@@ -275,6 +275,7 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
         best_move = max(candidates, key=lambda m: total_potential(m, remaining_apples, target))
 
         if visit_count[best_move] > 10 or best_move == pos:
+            print("being stuck")
             break  # likely stuck
 
         pos = best_move
