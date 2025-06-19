@@ -21,3 +21,8 @@ ENDMAP
 
 STAIR:(10, 10),down
 BRANCH: (3,6,3,6),(4,7,4,7)
+OBJECT:('%',"apple"),random
+OBJECT:('%',"apple"),random
+OBJECT:('%',"apple"),random
+OBJECT:('%',"apple"),random
+OBJECT:('%',"apple"),random

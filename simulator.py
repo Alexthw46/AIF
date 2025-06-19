@@ -113,18 +113,26 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
     done = False
     dic = {}
     s = state
+    old_apple_positions = []
     while not done:
         start = get_player_location(game_map)
 
+        print("Evaluating path...")
         # choose a target location and path to it
         path = fun(game_map, start, **kwargs)
 
         actions = actions_from_path(start, path[1:]) if path is not None else []
-
+        simulate_path(path, game_map, actions)
+        time.sleep(wait_time)
         for action in actions:
             # check where the apples are before moving
             apple_positions = np.where(np.vectorize(chr)(s['chars']) == '%')
             apple_positions = list(zip(apple_positions[0], apple_positions[1]))
+            # a new apple has been discovered
+            if len(apple_positions) > len(old_apple_positions):
+                old_apple_positions = apple_positions
+                print("Apple discovered, recomputing...")
+                break
             s, reward, done, _, dic = env.step(action)
             tot_reward += reward
             display.display(plt.gcf())
@@ -141,6 +149,7 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
                 tot_reward += reward
             else:
                 break
+            old_apple_positions = apple_positions
             game_map = s['chars']
 
     print(f"Episode finished:", dic)
