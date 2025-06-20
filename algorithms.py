@@ -1,10 +1,13 @@
+import heapq
+import random
+from collections import defaultdict
 from collections import deque
 from queue import PriorityQueue
-from typing import Set, Tuple, List
-from collections import defaultdict
-from utils import *
-import random
+from typing import Set
+
 import numpy as np
+
+from utils import *
 
 
 def build_path(parent: dict, target: Tuple[int, int]) -> List[Tuple[int, int]]:
@@ -262,7 +265,7 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
         if pos in apples:
             collected.add(pos)
 
-        if pos == target and collected == apples:
+        if pos == target:
             return path
 
         remaining_apples = apples - collected
@@ -283,3 +286,54 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
 
     print("Failed to reach target within potential field limits.")
     return None
+
+
+def greedy_best_first_search(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
+                             apples: Set[Tuple[int, int]]) -> List[Tuple[int, int]] | None:
+    def heuristic(pos, collected, apples, target):
+        remaining_apples = apples - collected
+        if not remaining_apples:
+            # Se non ci sono mele da raccogliere, solo distanza dalla posizione al target
+            return manhattan_distance(pos, target)
+
+        dist = 0
+        current_pos = pos
+        unvisited = set(remaining_apples)
+
+        while unvisited:
+            # Trova la mela più vicina alla posizione corrente
+            next_apple = min(unvisited, key=lambda a: manhattan_distance(current_pos, a))
+            dist += manhattan_distance(current_pos, next_apple)
+            current_pos = next_apple
+            unvisited.remove(next_apple)
+
+        # Aggiungi distanza dall'ultima mela al target
+        dist += manhattan_distance(current_pos, target)
+        return dist
+
+    start_state = (start, frozenset())  # position, collected_apples
+    frontier = []
+    heapq.heappush(frontier, (heuristic(start, frozenset(), apples, target), start_state, [start]))
+    visited = set()
+
+    while frontier:
+        _, (pos, collected), path = heapq.heappop(frontier)
+        if (pos, collected) in visited:
+            continue
+        visited.add((pos, collected))
+
+        # Check if goal reached
+        if pos == target and collected == apples:
+            return path
+
+        for move in get_valid_moves(game_map, pos):
+            new_collected = set(collected)
+            if move in apples:
+                new_collected.add(move)
+            new_state = (move, frozenset(new_collected))
+            if new_state not in visited:
+                new_path = path + [move]
+                h = heuristic(move, new_collected, apples, target)
+                heapq.heappush(frontier, (h, new_state, new_path))
+
+    return None  # no path found
