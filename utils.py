@@ -1,7 +1,8 @@
-import numpy as np
 import math
-
+from collections import deque
 from typing import Tuple, List
+
+import numpy as np
 
 directions = ["UP", "RIGHT", "DOWN", "LEFT"]
 
@@ -99,6 +100,34 @@ def manhattan_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
     x2, y2 = point2
     return abs(x1 - x2) + abs(y1 - y2)
 
+
+def cached_bfs(game_map, start, goal, path_cache):
+    key = (start, goal)
+    if key in path_cache:
+        return path_cache[key]
+    dist = bfs_path_length(game_map, start, goal)
+    path_cache[key] = dist
+    return dist
+
+
+def bfs_path_length(game_map, start, goal) -> int:
+    """Return shortest path length between start and goal, accounting for walls."""
+    if start == goal:
+        return 0
+    rows, cols = game_map.shape
+    visited = set()
+    queue = deque([(start, 0)])
+    visited.add(start)
+
+    while queue:
+        (x, y), dist = queue.popleft()
+        for nx, ny in get_valid_moves(game_map, (x, y)):
+            if (nx, ny) == goal:
+                return dist + 1
+            if (nx, ny) not in visited:
+                visited.add((nx, ny))
+                queue.append(((nx, ny), dist + 1))
+    return float('inf')  # no path
 
 def randomize_apple_positions(
         map_str, min_x, min_y, max_x, max_y, num_apple, seed=None
