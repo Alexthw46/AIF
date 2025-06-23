@@ -233,7 +233,7 @@ def create_env(map, penalty_time: float = -0.1, apple_reward: float = 0.75) -> g
     return env
 
 
-def make_map(map_str: str, n_apples: int, seed=None, start=[(1,1),(0,0)], stairs=None) -> str:
+def make_map(map_str: str, n_apples: int, seed=None, start=None, stairs=None) -> str:
     """
     Create a map file for the MiniHack environment.
     """
@@ -244,7 +244,7 @@ def make_map(map_str: str, n_apples: int, seed=None, start=[(1,1),(0,0)], stairs
     map_str = lvl_gen.get_map_str()
 
     if start is not None:
-        lvl_gen.set_start_rect(start[0], start[1])
+        lvl_gen.set_start_pos(start)
     # Randomly place the start position otherwise
 
     # Generate random positions for apples
