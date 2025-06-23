@@ -52,6 +52,7 @@ def heuristic_rollout_policy(game_map, state, target, apples):
     collected = set(collected)
     steps = 0
     max_steps = 250
+
     while steps < max_steps:
         if pos == target and collected == apples:
             break
@@ -64,13 +65,14 @@ def heuristic_rollout_policy(game_map, state, target, apples):
         if pos in apples:
             collected.add(pos)
         steps += 1
-        # Reward for collected apples + bonus if target reached after collecting all
+
+    # Reward for collected apples + bonus if target reached after collecting all
     reward = len(collected)*0.75
     if pos == target and collected == apples:
-      reward += 2  # bonus reward for full succes
+      reward += 2  # bonus reward for full success
     if pos == target:
         reward += 1
-    if pos != target: # penalization if you do no reach the downstair target
+    if pos != target: # penalization if you do no reach the downstairs target
         reward -= 1  # or set reward = 0
     return reward
 

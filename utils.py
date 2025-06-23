@@ -4,7 +4,7 @@ from typing import Tuple, List
 
 import numpy as np
 
-directions = ["UP", "RIGHT", "DOWN", "LEFT"]
+directions = ["UP", "RIGHT", "DOWN", "LEFT", "UP_RIGHT", "UP_LEFT", "DOWN_RIGHT", "DOWN_LEFT"]
 
 
 def get_player_location(game_map: np.ndarray, symbol: str = "@") -> Tuple[int, int]:
@@ -12,9 +12,14 @@ def get_player_location(game_map: np.ndarray, symbol: str = "@") -> Tuple[int, i
     return x[0], y[0]
 
 
-def get_target_location(game_map: np.ndarray, symbol: str = ">") -> Tuple[int, int]:
+def get_stairs_location(game_map: np.ndarray, symbol: str = ">") -> Tuple[int, int]:
     x, y = np.where(game_map == ord(symbol))
     return x[0], y[0]
+
+def is_floor_tile(lines, x, y):
+    if 0 <= y < len(lines) and 0 <= x < len(lines[y]):
+        return lines[y][x] == '.'
+    return False
 
 
 def is_wall(position_element: int) -> bool:
@@ -55,7 +60,11 @@ def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> Li
         "N": 0,
         "E": 1,
         "S": 2,
-        "W": 3
+        "W": 3,
+        "NE": 4,
+        "NW": 5,
+        "SE": 6,
+        "SW": 7
     }
     actions = []
     x_s, y_s = start
@@ -71,23 +80,25 @@ def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> Li
             else:
                 actions.append(action_map["S"])
         else:
-            # Both x and y change, we split into two actions. But we check that they change by at most 1.
-            if abs(x_s - x) > 1 or abs(y_s - y) > 1:
-                print(f"Invalid path: {(x_s, y_s)} -> {x, y}")
-                raise Exception("Invalid path: x and y can't change by more than 1 at the same time.")
-            if x_s > x:
-                actions.append(action_map["N"])
-            elif x_s < x:
-                actions.append(action_map["S"])
-            if y_s > y:
-                actions.append(action_map["W"])
-            elif y_s < y:
-                actions.append(action_map["E"])
+
+            if x_s > x and y_s > y:
+                actions.append(action_map["NW"])
+            elif x_s > x and y_s < y:
+                actions.append(action_map["SW"])
+            elif x_s < x and y_s > y:
+                actions.append(action_map["NE"])
+            else:
+                actions.append(action_map["SE"])
+
         x_s = x
         y_s = y
 
     return actions
 
+def chebyshev_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
+    x1, y1 = point1
+    x2, y2 = point2
+    return max(abs(x1 - x2), abs(y1 - y2))
 
 def euclidean_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> float:
     x1, y1 = point1
@@ -152,16 +163,14 @@ def randomize_apple_positions(
         random.seed(seed)
 
     apple_positions = []
-    lines = map_str.split('\n')
+    lines = [line.rstrip() for line in map_str.strip().split('\n')]
     print(f"Placing {num_apple} apples between ({min_x}, {min_y}) and ({max_x}, {max_y})")
     while len(apple_positions) < num_apple:
         x = random.randint(min_x, max_x)
         y = random.randint(min_y, max_y)
-        # print(f"Trying to place apple at: ({x}, {y})")
         if (x, y) not in apple_positions:
-            if lines[y][x] == '.':
+            if is_floor_tile(lines, x, y) and lines[y][x] != '%':
                 apple_positions.append((x, y))
-                print(f"Placed apple at: ({x}, {y})")
             else:
                 continue
                 #print(f"Position ({x}, {y}) is not valid for apple placement ({lines[y][x]}).")

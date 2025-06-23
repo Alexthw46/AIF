@@ -20,7 +20,7 @@ def is_terminal(state, target, apples):
     return pos == target and collected == apples
 
 
-def rollout_policy(game_map, state, target, apples, path_cache):
+def rollout_policy(game_map, state, target, apples, path_cache, heuristic=None):
     pos, collected = state
     collected = set(collected)
     visited = set()
@@ -38,16 +38,19 @@ def rollout_policy(game_map, state, target, apples, path_cache):
         if not moves:
             break
 
-        # Prioritize:
-        # 1. unexplored moves
-        # 2. moves toward uncollected apples
-        # 3. moves toward the target
-        moves.sort(key=lambda m: (
-            m in apples and m not in collected,
-            cached_bfs(game_map, m, target, path_cache)
-        ), reverse=True)
+        if heuristic is not None:
+            # Prioritize:
+            # 1. unexplored moves
+            # 2. moves toward uncollected apples
+            # 3. moves toward the target
+            moves.sort(key=lambda m: (
+                m in apples and m not in collected,
+                heuristic(game_map, m, target, path_cache)
+            ), reverse=True)
+            pos = moves[0]
+        else:
+            pos = random.choice(moves)
 
-        pos = moves[0]
         if pos in apples:
             collected.add(pos)
         steps += 1
@@ -78,8 +81,8 @@ def expand(node, game_map, apples, visited_states):
             visited_states.add(new_state)
 
 
-def tree_policy(node, game_map, target, apples):
-    C = 1.4  # exploration constant
+def tree_policy(node, game_map, target, apples, C=1.4):
+    # exploration constant
     while not is_terminal(node.state, target, apples):
         if node.children:
             # UCB1 selection
@@ -117,7 +120,8 @@ def mcts(
         target: Tuple[int, int],
         apples: Set[Tuple[int, int]],
         iterations=1000,
-        policy=rollout_policy
+        policy=rollout_policy,
+        heuristic=None
 ) -> List[Tuple[int, int]]:
     root = MCTSNode((start, frozenset()))
     visited_states = {root.state}
@@ -128,7 +132,7 @@ def mcts(
             expand(node, game_map, apples, visited_states)
             if node.children:
                 node = random.choice(node.children)
-        reward = policy(game_map, node.state, target, apples, path_cache)
+        reward = policy(game_map, node.state, target, apples, path_cache, heuristic=heuristic)
         backpropagate(node, reward)
 
         # Optional: early exit if we found a full path
