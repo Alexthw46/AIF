@@ -32,7 +32,7 @@ def rollout_policy(game_map, state, target, apples, path_cache, heuristic=None):
             break
 
         visited.add(pos)
-        moves = get_valid_moves(game_map, pos)
+        moves = get_valid_moves(game_map, pos, allow_diagonals=False)
         moves = [m for m in moves if m not in visited]  # avoid loops
 
         if not moves:
@@ -70,7 +70,7 @@ def expand(node, game_map, apples, visited_states):
     pos, collected = node.state
     collected = set(collected)
 
-    for move in get_valid_moves(game_map, pos):
+    for move in get_valid_moves(game_map, pos, allow_diagonals=False):
         new_collected = set(collected)
         if move in apples:
             new_collected.add(move)
