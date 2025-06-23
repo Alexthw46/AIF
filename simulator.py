@@ -112,13 +112,14 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
     dic = {}
     s = state
     old_apple_positions = []
+    paths = []
     while not done:
         start = utils.get_player_location(game_map)
 
         print("Evaluating path...")
         # choose a target location and path to it
         path = fun(game_map, start, **kwargs)
-
+        paths.append(path)
         actions = utils.actions_from_path(start, path[1:]) if path is not None else []
         utils.simulate_path(path, game_map, actions)
         time.sleep(wait_time)
@@ -153,6 +154,8 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
     print(f"Episode finished:", dic)
     print("Reward:", tot_reward)
 
+    for path in paths:
+        utils.print_path_on_map(game_map, path)
     return tot_reward
 
 
@@ -233,11 +236,11 @@ def create_env(map, penalty_time: float = -0.1, apple_reward: float = 0.75) -> g
     return env
 
 
-def make_map(map_str: str, n_apples: int, seed=None, start=None, stairs=None) -> str:
+def make_map(map_str: str, n_apples: int, seed=None, start=None, stairs=None, premapped=False) -> str:
     """
     Create a map file for the MiniHack environment.
     """
-    lvl_gen = LevelGenerator(map=map_str, flags=("premapped",))
+    lvl_gen = LevelGenerator(map=map_str, flags=("premapped" if premapped else "hardfloor",))
     cols, rows = lvl_gen.x, lvl_gen.y
 
     # Sync the map with the level generator post-initialization

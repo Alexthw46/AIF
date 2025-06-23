@@ -4,7 +4,18 @@ from typing import Tuple, List
 
 import numpy as np
 
-directions = ["UP", "RIGHT", "DOWN", "LEFT", "UP_RIGHT", "UP_LEFT", "DOWN_RIGHT", "DOWN_LEFT"]
+action_map = {
+    "N": 0,
+    "E": 1,
+    "S": 2,
+    "W": 3,
+    "NE": 4,
+    "SE": 5,
+    "SW": 6,
+    "NW": 7
+}
+
+directions = ["UP", "RIGHT", "DOWN", "LEFT", "UP_RIGHT", "DOWN_RIGHT", "DOWN_LEFT", "UP_LEFT"]
 
 
 def get_player_location(game_map: np.ndarray, symbol: str = "@") -> Tuple[int, int]:
@@ -12,9 +23,12 @@ def get_player_location(game_map: np.ndarray, symbol: str = "@") -> Tuple[int, i
     return int(x[0]), int(y[0])
 
 
-def get_stairs_location(game_map: np.ndarray, symbol: str = ">") -> Tuple[int, int]:
+def get_stairs_location(game_map: np.ndarray, symbol: str = ">") -> tuple[int, int] | None:
     x, y = np.where(game_map == ord(symbol))
+    if x.size == 0 or y.size == 0:
+        return None  # No stairs found
     return int(x[0]), int(y[0])
+
 
 def is_floor_tile(lines, x, y):
     if 0 <= y < len(lines) and 0 <= x < len(lines[y]):
@@ -23,7 +37,7 @@ def is_floor_tile(lines, x, y):
 
 
 def is_wall(position_element) -> bool:
-    obstacles = "|-} "
+    obstacles = "|-}"
     return chr(int(position_element)) in obstacles
 
 
@@ -90,42 +104,32 @@ def get_valid_moves(game_map: np.ndarray, current_position: Tuple[int, int], avo
 
 
 def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> List[int]:
-    action_map = {
-        "N": 0,
-        "E": 1,
-        "S": 2,
-        "W": 3,
-        "NE": 4,
-        "NW": 5,
-        "SE": 6,
-        "SW": 7
-    }
     actions = []
-    x_s, y_s = start
-    for (x, y) in path:
+    y_s, x_s = start
+
+    for (y, x) in path:
         if x_s == x:
             if y_s > y:
-                actions.append(action_map["W"])
+                actions.append(action_map["N"])  # Up
             else:
-                actions.append(action_map["E"])
+                actions.append(action_map["S"])  # Down
         elif y_s == y:
             if x_s > x:
-                actions.append(action_map["N"])
+                actions.append(action_map["W"])  # Left
             else:
-                actions.append(action_map["S"])
+                actions.append(action_map["E"])  # Right
         else:
-
-            if x_s > x and y_s > y:
+            if y_s > y and x_s > x:
                 actions.append(action_map["NW"])
-            elif x_s > x and y_s < y:
-                actions.append(action_map["SW"])
-            elif x_s < x and y_s > y:
+            elif y_s > y and x_s < x:
                 actions.append(action_map["NE"])
+            elif y_s < y and x_s > x:
+                actions.append(action_map["SW"])
             else:
                 actions.append(action_map["SE"])
 
-        x_s = x
         y_s = y
+        x_s = x
 
     return actions
 
@@ -133,6 +137,7 @@ def chebyshev_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
     x1, y1 = point1
     x2, y2 = point2
     return max(abs(x1 - x2), abs(y1 - y2))
+
 
 def euclidean_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> float:
     x1, y1 = point1
@@ -173,6 +178,7 @@ def bfs_path_length(game_map, start, goal) -> int | float:
                 visited.add((nx, ny))
                 queue.append(((nx, ny), dist + 1))
     return float('inf')  # no path
+
 
 def randomize_apple_positions(
         map_str, min_x, min_y, max_x, max_y, num_apple, seed=None
@@ -238,6 +244,7 @@ def print_path_on_map(game_map: np.ndarray, path: List[Tuple[int, int]]):
 def simulate_path(path, game_map, actions):
     """ Simulate the path on the game map and print the actions taken.
     """
+    print("Simulating path:", path)
     print("Actions to take:", list((map(lambda x: directions[x], actions))))
     # check how much apple is collected in the path
     apple_collected = []

@@ -109,30 +109,6 @@ def beam_search_path_planner(game_map: np.ndarray,
     return best_path
 
 
-def frontier_search(game_map: np.ndarray) -> List[Tuple[int, int]]:
-    """
-        Find walkable frontier tiles — known tiles adjacent to unknown space.
-
-        Args:
-            game_map: 2D numpy array of characters
-
-        Returns:
-            List of (y, x) tuples — frontier tile positions
-    """
-    frontier = []
-    rows, cols = game_map.shape
-
-    for y in range(rows):
-        for x in range(cols):
-            if game_map[y, x] == ' ':
-                for ny, nx in get_valid_moves(game_map, (y, x), allow_diagonals=True):
-                    if game_map[ny, nx] != ' ':
-                        frontier.append((y, x))
-                        break
-
-    return frontier
-
-
 def a_star_apple(
         game_map: np.ndarray,
         start: Tuple[int, int],

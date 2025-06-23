@@ -1,6 +1,5 @@
 
 MAZE: "mylevel", ' '
-FLAGS:premapped
 GEOMETRY:center,center
 
 MAP
