@@ -9,12 +9,12 @@ directions = ["UP", "RIGHT", "DOWN", "LEFT", "UP_RIGHT", "UP_LEFT", "DOWN_RIGHT"
 
 def get_player_location(game_map: np.ndarray, symbol: str = "@") -> Tuple[int, int]:
     x, y = np.where(game_map == ord(symbol))
-    return x[0], y[0]
+    return int(x[0]), int(y[0])
 
 
 def get_stairs_location(game_map: np.ndarray, symbol: str = ">") -> Tuple[int, int]:
     x, y = np.where(game_map == ord(symbol))
-    return x[0], y[0]
+    return int(x[0]), int(y[0])
 
 def is_floor_tile(lines, x, y):
     if 0 <= y < len(lines) and 0 <= x < len(lines[y]):
@@ -22,12 +22,13 @@ def is_floor_tile(lines, x, y):
     return False
 
 
-def is_wall(position_element: int) -> bool:
+def is_wall(position_element) -> bool:
     obstacles = "|-} "
-    return chr(position_element) in obstacles
+    return chr(int(position_element)) in obstacles
 
 
-def get_valid_moves(game_map: np.ndarray, current_position: Tuple[int, int], avoid_stairs=False) -> List[
+def get_valid_moves(game_map: np.ndarray, current_position: Tuple[int, int], avoid_stairs=False,
+                    allow_diagonals=True) -> List[
     Tuple[int, int]]:
     x_limit, y_limit = game_map.shape
     valid = []
@@ -51,6 +52,39 @@ def get_valid_moves(game_map: np.ndarray, current_position: Tuple[int, int], avo
     if x - 1 > 0 and not is_wall(game_map[x - 1, y]):
         if not (avoid_stairs and game_map[x - 1, y] == ord('>')):
             valid.append((x - 1, y))
+
+    if allow_diagonals:
+        # Needs to check if the diagonal move is valid. If the two adjacent tiles are not walls, then the diagonal move is valid.
+        # North-East
+        if (y - 1 > 0 and x + 1 < x_limit and
+                not is_wall(game_map[x + 1, y - 1]) and
+                not is_wall(game_map[x, y - 1]) and
+                not is_wall(game_map[x + 1, y])):
+            if not (avoid_stairs and game_map[x + 1, y - 1] == ord('>')):
+                valid.append((x + 1, y - 1))
+        # North-West
+        if (y - 1 > 0 and x - 1 > 0 and
+                not is_wall(game_map[x - 1, y - 1]) and
+                not is_wall(game_map[x, y - 1]) and
+                not is_wall(game_map[x - 1, y])):
+            if not (avoid_stairs and game_map[x - 1, y - 1] == ord('>')):
+                valid.append((x - 1, y - 1))
+
+        # South-East
+        if (y + 1 < y_limit and x + 1 < x_limit and
+                not is_wall(game_map[x + 1, y + 1]) and
+                not is_wall(game_map[x, y + 1]) and
+                not is_wall(game_map[x + 1, y])):
+            if not (avoid_stairs and game_map[x + 1, y + 1] == ord('>')):
+                valid.append((x + 1, y + 1))
+
+        # South-West
+        if (y + 1 < y_limit and x - 1 > 0 and
+                not is_wall(game_map[x - 1, y + 1]) and
+                not is_wall(game_map[x, y + 1]) and
+                not is_wall(game_map[x - 1, y])):
+            if not (avoid_stairs and game_map[x - 1, y + 1] == ord('>')):
+                valid.append((x - 1, y + 1))
 
     return valid
 
@@ -121,7 +155,7 @@ def cached_bfs(game_map, start, goal, path_cache):
     return dist
 
 
-def bfs_path_length(game_map, start, goal) -> int:
+def bfs_path_length(game_map, start, goal) -> int | float:
     """Return shortest path length between start and goal, accounting for walls."""
     if start == goal:
         return 0
@@ -146,17 +180,18 @@ def randomize_apple_positions(
     """
     Randomizes apple positions in a given map string.
 
-    Args:
-        map_str (str): The map in string representation.
-        min_x (int): Minimum x-coordinate for apple placement.
-        min_y (int): Minimum y-coordinate for apple placement.
-        max_x (int): Maximum x-coordinate for apple placement.
-        max_y (int): Maximum y-coordinate for apple placement.
-        num_apple (int): Number of apple piles to place.
+    :param map_str: The map in string representation.
+    :param min_x: Minimum x-coordinate for apple placement.
+    :param min_y: Minimum y-coordinate for apple placement.
+    :param max_x: Maximum x-coordinate for apple placement.
+    :param max_y: Maximum y-coordinate for apple placement.
+    :param num_apple: Number of apple piles to place.
+    :param seed: Optional seed for random number generation.
 
-    Returns:
-        list: A list of tuples representing the positions of the apple piles.
+    :return: A list of tuples representing the positions of the apple piles.
+
     """
+
     import random
 
     if seed is not None:
@@ -173,7 +208,6 @@ def randomize_apple_positions(
                 apple_positions.append((x, y))
             else:
                 continue
-                #print(f"Position ({x}, {y}) is not valid for apple placement ({lines[y][x]}).")
 
     return apple_positions
 
@@ -184,7 +218,7 @@ def print_path_on_map(game_map: np.ndarray, path: List[Tuple[int, int]]):
         row = ""
         for x in range(game_map.shape[1]):
             pos = (y, x)
-            char = chr(game_map[y, x])
+            char = chr(int(game_map[y, x]))
             if pos == path[0]:
                 row += "@"
             elif pos == path[-1] and char == '>':

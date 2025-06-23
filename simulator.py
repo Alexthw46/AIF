@@ -7,9 +7,7 @@ from minihack import LevelGenerator
 from minihack import RewardManager
 from nle import nethack
 
-from MCTS import *
-from utils import *
-from utils import get_player_location
+import utils
 
 
 def stairs_reward_function(env, previous_observation, action, observation):
@@ -36,11 +34,11 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
     state, _ = env.reset()
     game_map = state['chars']
     game = state['pixel_crop' if cropped else 'pixel']
-    start = get_player_location(game_map)
-    target = get_stairs_location(game_map)
+    start = utils.get_player_location(game_map)
+    target = utils.get_stairs_location(game_map)
 
-    char_map = np.vectorize(chr)(game_map)
-    apple_positions = np.where(char_map == '%')
+    char_map = utils.np.vectorize(chr)(game_map)
+    apple_positions = utils.np.where(char_map == '%')
 
     # zip into a list of int tuples (x, y)
     apple_positions = list(zip(apple_positions[0], apple_positions[1]))
@@ -56,8 +54,8 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
         for (x, y) in path:
             print(x, y)
 
-    actions = actions_from_path(start, path[1:])
-    simulate_path(path, game_map, actions)
+    actions = utils.actions_from_path(start, path[1:])
+    utils.simulate_path(path, game_map, actions)
 
     image = plt.imshow(game if cropped else game[:, 400:850])
 
@@ -77,12 +75,12 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
                 display.clear_output(wait=True)
             time.sleep(wait_time)
             image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
-            print("Action taken:", directions[action])
+            print("Action taken:", utils.directions[action])
         else:
             print(f"Episode finished:", dic)
             print("Reward:", tot_reward)
             break
-    print_path_on_map(game_map, path)
+    utils.print_path_on_map(game_map, path)
     if not done:
         print("Stairs were not reached.")
     return tot_reward
@@ -115,18 +113,18 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
     s = state
     old_apple_positions = []
     while not done:
-        start = get_player_location(game_map)
+        start = utils.get_player_location(game_map)
 
         print("Evaluating path...")
         # choose a target location and path to it
         path = fun(game_map, start, **kwargs)
 
-        actions = actions_from_path(start, path[1:]) if path is not None else []
-        simulate_path(path, game_map, actions)
+        actions = utils.actions_from_path(start, path[1:]) if path is not None else []
+        utils.simulate_path(path, game_map, actions)
         time.sleep(wait_time)
         for action in actions:
             # check where the apples are before moving
-            apple_positions = np.where(np.vectorize(chr)(s['chars']) == '%')
+            apple_positions = utils.np.where(utils.np.vectorize(chr)(s['chars']) == '%')
             apple_positions = list(zip(apple_positions[0], apple_positions[1]))
             # a new apple has been discovered
             if len(apple_positions) > len(old_apple_positions):
@@ -141,7 +139,7 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
                 display.clear_output(wait=True)
             print("Reward:", tot_reward)
             image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
-            print("Action taken:", directions[action])
+            print("Action taken:", utils.directions[action])
             print(bytes(s['message']).decode('utf-8').rstrip('\x00'))
             if not done:
                 # check if we are on an apple and eat it
@@ -168,7 +166,7 @@ def check_and_eat_apple(state, env, apple_positions):
     # INVENTORY = env.unwrapped.actions.index(nethack.Command.INVENTORY)
 
     game_map = state['chars']
-    player_location = get_player_location(game_map)
+    player_location = utils.get_player_location(game_map)
     print(f"Player location: {player_location}")
     print(f"Apple location: {apple_positions}")
     if player_location in apple_positions:
@@ -242,6 +240,9 @@ def make_map(map_str: str, n_apples: int, seed=None, start=[(1,1),(0,0)], stairs
     lvl_gen = LevelGenerator(map=map_str, flags=("premapped",))
     cols, rows = lvl_gen.x, lvl_gen.y
 
+    # Sync the map with the level generator post-initialization
+    map_str = lvl_gen.get_map_str()
+
     if start is not None:
         lvl_gen.set_start_rect(start[0], start[1])
     # Randomly place the start position otherwise
@@ -251,7 +252,7 @@ def make_map(map_str: str, n_apples: int, seed=None, start=[(1,1),(0,0)], stairs
         for pos in range(0, n_apples):
             lvl_gen.add_object("apple", "%")
     else:
-        apple_positions = randomize_apple_positions(map_str, 1, 2, cols - 1, rows - 2, n_apples, seed=seed)
+        apple_positions = utils.randomize_apple_positions(map_str, 0, 1, cols, rows - 1, n_apples, seed=seed)
 
         for pos in apple_positions:
             lvl_gen.add_object("apple", "%", place=pos)
