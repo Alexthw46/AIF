@@ -240,21 +240,20 @@ def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: 
 def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
                          apples: Set[Tuple[int, int]], max_steps=5000, heuristic: callable = manhattan_distance) -> List[Tuple[int, int]] | None:
     
-    def attractive_force(pos, goal, weight=1.0):
+    def attractive_force(pos, goal, path_cache, weight=1.0):
         if heuristic == cached_bfs:
-            path_cache = {}
-            return -weight * cached_bfs(game_map,pos, goal , path_cache)
+            return -weight * heuristic(game_map,pos, goal , path_cache)
         elif heuristic == manhattan_distance:
-            return -weight * manhattan_distance(pos, goal)
+            return -weight * heuristic(pos, goal)
 
-    def total_potential(pos, remaining_apples, target):
-        potential = attractive_force(pos, target, weight=3.5)
+    def total_potential(pos, remaining_apples, target, path_cache):
+        potential = attractive_force(pos, target, path_cache, weight=1)
         for apple in remaining_apples:
-            potential += attractive_force(pos, apple, weight=1)
+            potential += attractive_force(pos, apple, path_cache,  weight=0.75)
         # Add small random noise to break ties/local minima
         potential += random.uniform(-0.3, 0.3)
         # Add repulsion from previous visits
-        potential -= visit_count[pos] * 2
+        potential -= visit_count[pos] * 5
         return potential
 
     pos = start
@@ -262,6 +261,7 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
     path = [pos]
     steps = 0
     visit_count = defaultdict(int)
+    path_cache = {}
 
     while steps < max_steps:
         steps += 1
@@ -275,11 +275,11 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
         remaining_apples = apples - collected
         visit_count[pos] += 1
 
-        candidates = get_valid_moves(game_map, pos)
+        candidates = get_valid_moves(game_map, pos, allow_diagonals=False)
         if not candidates:
             break  # dead end
 
-        best_move = max(candidates, key=lambda m: total_potential(m, remaining_apples, target))
+        best_move = max(candidates, key=lambda m: total_potential(m, remaining_apples, target, path_cache))
 
         if visit_count[best_move] > 10 or best_move == pos:
             print("being stuck")
@@ -293,12 +293,15 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
 
 
 def greedy_best_first_search(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
-                             apples: Set[Tuple[int, int]]) -> List[Tuple[int, int]] | None:
-    def heuristic(pos, collected, apples, target):
+                             apples: Set[Tuple[int, int]], heuristic: callable = manhattan_distance) -> List[Tuple[int, int]] | None:
+    def evaluate_heuristic(game_map, pos, collected, apples, target, path_cache):
         remaining_apples = apples - collected
         if not remaining_apples:
             # Se non ci sono mele da raccogliere, solo distanza dalla posizione al target
-            return manhattan_distance(pos, target)
+            if heuristic == manhattan_distance:
+                return heuristic(pos, target)
+            elif heuristic == cached_bfs:
+                return heuristic(game_map, pos, target, path_cache)
 
         dist = 0
         current_pos = pos
@@ -306,19 +309,29 @@ def greedy_best_first_search(game_map: np.ndarray, start: Tuple[int, int], targe
 
         while unvisited:
             # Trova la mela più vicina alla posizione corrente
-            next_apple = min(unvisited, key=lambda a: manhattan_distance(current_pos, a))
-            dist += manhattan_distance(current_pos, next_apple)
-            current_pos = next_apple
-            unvisited.remove(next_apple)
+            if heuristic == manhattan_distance:
+                next_apple = min(unvisited, key=lambda a: heuristic(current_pos, a))
+                dist += heuristic(current_pos, next_apple)
+                current_pos = next_apple
+                unvisited.remove(next_apple)
+            elif heuristic == cached_bfs:
+                next_apple = min(unvisited, key=lambda a: heuristic(game_map, current_pos, a, path_cache))
+                dist += heuristic(game_map, current_pos, next_apple, path_cache)
+                current_pos = next_apple
+                unvisited.remove(next_apple)
 
         # Aggiungi distanza dall'ultima mela al target
-        dist += manhattan_distance(current_pos, target)
+        if heuristic == manhattan_distance:
+            dist += heuristic(current_pos, target)
+        elif heuristic == cached_bfs:
+            dist += heuristic(game_map, current_pos, target, path_cache)
         return dist
 
     start_state = (start, frozenset())  # position, collected_apples
     frontier = []
-    heapq.heappush(frontier, (heuristic(start, frozenset(), apples, target), start_state, [start]))
-    visited = set()
+    path_cache = {}
+    heapq.heappush(frontier, (evaluate_heuristic(game_map, start, frozenset(), apples, target, path_cache), start_state, [start]))
+    visited = set()  
 
     while frontier:
         _, (pos, collected), path = heapq.heappop(frontier)
@@ -330,14 +343,14 @@ def greedy_best_first_search(game_map: np.ndarray, start: Tuple[int, int], targe
         if pos == target and collected == apples:
             return path
 
-        for move in get_valid_moves(game_map, pos):
+        for move in get_valid_moves(game_map, pos, allow_diagonals=False):
             new_collected = set(collected)
             if move in apples:
                 new_collected.add(move)
             new_state = (move, frozenset(new_collected))
             if new_state not in visited:
                 new_path = path + [move]
-                h = heuristic(move, new_collected, apples, target)
+                h = evaluate_heuristic(game_map, move, new_collected, apples, target, path_cache)
                 heapq.heappush(frontier, (h, new_state, new_path))
 
     return None  # no path found
