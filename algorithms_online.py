@@ -46,14 +46,14 @@ def montecarlo_online(game_map, start, **kwargs):
     target = get_stairs_location(game_map)
     return mcts(game_map, start, target, set(apple_positions), **kwargs)
 
-def beam_search_online(game_map, start, **kwargs):
+def planner_online(game_map, start, planner_func, **kwargs):
     """
-    Beam search online algorithm for use with simulate_online.
+    General online planner function for use with simulate_online.
+    Takes a planning function (like mcts or greedy_best_first_online) as an argument.
     Plans a path to the nearest apple, or to the stairs if no apples remain.
     """
-    from algorithms_2 import beam_search_path_planner as beam_search
     char_map = np.vectorize(chr)(game_map)
     apple_positions = np.where(char_map == '%')
     apple_positions = list(zip(apple_positions[0], apple_positions[1]))
-    target = get_stairs_location(game_map)
-    return beam_search(game_map, start, target, set(apple_positions), **kwargs)
+    target = get_target_location(game_map)
+    return planner_func(game_map, start, target, set(apple_positions), **kwargs)

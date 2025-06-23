@@ -3,7 +3,7 @@ from typing import Tuple, Set, List, Optional
 
 import numpy as np
 
-from utils import get_valid_moves
+from utils import get_valid_moves, cached_bfs
 
 
 class MCTSNode:

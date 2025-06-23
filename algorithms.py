@@ -238,15 +238,19 @@ def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: 
 
 
 def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
-                         apples: Set[Tuple[int, int]], max_steps=5000) -> List[Tuple[int, int]] | None:
+                         apples: Set[Tuple[int, int]], max_steps=5000, heuristic: callable = manhattan_distance) -> List[Tuple[int, int]] | None:
     
     def attractive_force(pos, goal, weight=1.0):
-        return -weight * manhattan_distance(pos, goal)
+        if heuristic == cached_bfs:
+            path_cache = {}
+            return -weight * cached_bfs(game_map,pos, goal , path_cache)
+        elif heuristic == manhattan_distance:
+            return -weight * manhattan_distance(pos, goal)
 
     def total_potential(pos, remaining_apples, target):
         potential = attractive_force(pos, target, weight=3.5)
         for apple in remaining_apples:
-            potential += attractive_force(pos, apple, weight=1.0)
+            potential += attractive_force(pos, apple, weight=1)
         # Add small random noise to break ties/local minima
         potential += random.uniform(-0.3, 0.3)
         # Add repulsion from previous visits
