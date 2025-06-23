@@ -2,7 +2,7 @@ import numpy as np
 
 from MCTS_2 import mcts
 from algorithms import a_star
-from utils import get_target_location, manhattan_distance
+from utils import get_stairs_location, manhattan_distance
 
 
 def a_star_online(game_map, start, **kwargs):
@@ -19,7 +19,7 @@ def a_star_online(game_map, start, **kwargs):
         targets = apple_positions
     else:
         # No apples left, go to stairs
-        stairs = get_target_location(game_map)
+        stairs = get_stairs_location(game_map)
         if stairs is None:
             return []
         targets = [stairs]
@@ -43,9 +43,8 @@ def montecarlo_online(game_map, start, **kwargs):
     char_map = np.vectorize(chr)(game_map)
     apple_positions = np.where(char_map == '%')
     apple_positions = list(zip(apple_positions[0], apple_positions[1]))
-    target = get_target_location(game_map)
+    target = get_stairs_location(game_map)
     return mcts(game_map, start, target, set(apple_positions), **kwargs)
-
 
 def planner_online(game_map, start, planner_func, **kwargs):
     """

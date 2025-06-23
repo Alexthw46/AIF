@@ -37,7 +37,7 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
     game_map = state['chars']
     game = state['pixel_crop' if cropped else 'pixel']
     start = get_player_location(game_map)
-    target = get_target_location(game_map)
+    target = get_stairs_location(game_map)
 
     char_map = np.vectorize(chr)(game_map)
     apple_positions = np.where(char_map == '%')
@@ -142,7 +142,7 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
             print("Reward:", tot_reward)
             image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
             print("Action taken:", directions[action])
-
+            print(bytes(s['message']).decode('utf-8').rstrip('\x00'))
             if not done:
                 # check if we are on an apple and eat it
                 s, reward, _, _, _ = check_and_eat_apple(s, env, apple_positions)
@@ -235,16 +235,16 @@ def create_env(map, penalty_time: float = -0.1, apple_reward: float = 0.75) -> g
     return env
 
 
-def make_map(map_str: str, n_apples: int, seed=None) -> str:
+def make_map(map_str: str, n_apples: int, seed=None, start=[(1,1),(0,0)], stairs=None) -> str:
     """
     Create a map file for the MiniHack environment.
     """
-    lvl_gen = LevelGenerator(map=map_str)
+    lvl_gen = LevelGenerator(map=map_str, flags=("premapped",))
     cols, rows = lvl_gen.x, lvl_gen.y
 
-    # Fix the start position if a seed is provided
-    if seed is not None:
-        lvl_gen.set_start_pos((1, 1))
+    if start is not None:
+        lvl_gen.set_start_rect(start[0], start[1])
+    # Randomly place the start position otherwise
 
     # Generate random positions for apples
     if seed is None:
@@ -257,7 +257,9 @@ def make_map(map_str: str, n_apples: int, seed=None) -> str:
             lvl_gen.add_object("apple", "%", place=pos)
 
     # Randomly place the stairs down if no seed is provided
-    if seed is not None:
+    if stairs is not None:
+        lvl_gen.add_stair_down(stairs)
+    elif seed is not None:
         lvl_gen.add_stair_down((cols - 2, rows - 2))
     else:
         lvl_gen.add_stair_down()
