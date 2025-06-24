@@ -1,9 +1,9 @@
 import random
-from typing import Tuple, Set, List, Optional 
+from typing import Tuple, Set, List, Optional
 
 import numpy as np
 
-from utils import get_valid_moves, manhattan_distance, cached_bfs
+from utils import get_valid_moves
 
 
 class MCTSNode:
@@ -15,12 +15,12 @@ class MCTSNode:
         self.reward = 0.0
 
 
-def is_terminal(state, target, apples):
+def is_terminal(state, target: Tuple[int, int], apples: Set[Tuple[int, int]]) -> bool:
     pos, collected = state
     return pos == target and collected == apples
 
 
-def rollout_policy(game_map, state, target, apples):
+def rollout_policy(game_map, state, target: Tuple[int, int], apples: Set[Tuple[int, int]]) -> float:
     # Random rollout policy, simulate until terminal or max steps
     pos, collected = state
     collected = set(collected)
@@ -33,7 +33,7 @@ def rollout_policy(game_map, state, target, apples):
             break
 
         visited.add(pos)
-        moves = get_valid_moves(game_map, pos, allow_diagonals=False)
+        moves = get_valid_moves(game_map, pos)
         moves = [m for m in moves if m not in visited]  # avoid loops
 
         if not moves:
@@ -48,16 +48,15 @@ def rollout_policy(game_map, state, target, apples):
     # Reward for collected apples + bonus if target reached after collecting all
     reward = len(collected) * 1.0
     if pos == target and collected == apples:
-       reward += 5  # bonus reward for full succes
+        reward += 5  # bonus reward for full success
     elif pos == target:
         reward += 4
-    else: # penalization if you do no reach the downstair target
+    else:  # penalization if you don't reach the downstairs target
         reward -= 2  # or set reward = 0
-    return reward  
+    return reward
 
 
-def tree_policy(node, game_map, target, apples, C=1.4):
-    # exploration constant
+def tree_policy(node, game_map, target: Tuple[int, int], apples: Set[Tuple[int, int]], C=1.4):
     while not is_terminal(node.state, target, apples):
         if node.children:
             # UCB1 selection
@@ -107,7 +106,7 @@ def best_path(node):
 def mcts(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], apples: Set[Tuple[int, int]], iterations=1000, policy=rollout_policy):
     root = MCTSNode((start, frozenset()))
     visited_states = {root.state}
-    
+
     for _ in range(iterations):
         node = root
         # Selection

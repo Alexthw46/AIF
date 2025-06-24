@@ -3,7 +3,7 @@ from typing import List, Tuple
 import numpy as np
 
 from algorithms import a_star
-from utils import get_stairs_location, manhattan_distance, chebyshev_distance, get_valid_moves
+from utils import get_stairs_location, manhattan_distance, get_valid_moves, bfs_path_length
 
 
 def a_star_online(game_map, start, **kwargs):
@@ -62,7 +62,7 @@ def find_target(game_map, start):
         # select the closest frontier point as the target
         min_dist = float('inf')
         for pos in frontier:
-            dist = chebyshev_distance(start, pos)
+            dist = bfs_path_length(game_map, start, pos)
             if dist < min_dist:
                 min_dist = dist
                 target = pos

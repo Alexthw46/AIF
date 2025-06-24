@@ -2,6 +2,7 @@ import math
 from collections import deque
 from typing import Tuple, List
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 action_map = {
@@ -133,6 +134,7 @@ def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> Li
 
     return actions
 
+
 def chebyshev_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
     x1, y1 = point1
     x2, y2 = point2
@@ -255,3 +257,21 @@ def simulate_path(path, game_map, actions):
     print("Apple collected in the path:", apple_collected)
     print("Expected Reward: ", 1 + apple_collected * 0.75 - 0.1 * len(path))
     print_path_on_map(game_map, path)
+
+
+def save_images_as_video(images, save_dir: str, file_name: str, fps):
+    # Create directory if it doesn't exist
+    import os
+    if not os.path.exists(save_dir):
+        print(f"Creating directory: {save_dir}")
+        os.makedirs(save_dir)
+
+    from matplotlib import animation
+
+    fig = plt.figure(figsize=(10, 10))
+    frames = [[plt.imshow(img, animated=True)] for img in images]
+    ani = animation.ArtistAnimation(fig, frames, interval=1000 / fps, blit=True)
+
+    filename = file_name + '.gif'
+    print(f"Saving video to {os.path.join(save_dir, filename)}")
+    ani.save(os.path.join(save_dir, filename), writer='ffmpeg', fps=fps)

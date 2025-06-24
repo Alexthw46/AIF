@@ -86,7 +86,8 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
     return tot_reward
 
 
-def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0.5, cropped=True, **kwargs):
+def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0.5, cropped=True, save_dir=None,
+                    gif_name='', **kwargs):
     """
     Simulates the dynamic environment using a heuristic function.
 
@@ -107,12 +108,14 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
     image = plt.imshow(game if cropped else game[:, 400:850])
 
     time.sleep(2)
+    timer = time.time()
     tot_reward = 0
     done = False
     dic = {}
     s = state
     old_apple_positions = []
     paths = []
+    images = []
     while not done:
         start = utils.get_player_location(game_map)
 
@@ -135,14 +138,17 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
             s, reward, done, _, dic = env.step(action)
             tot_reward += reward
             display.display(plt.gcf())
-            time.sleep(wait_time)
-            if clear_outputs:
-                display.clear_output(wait=True)
-            print("Reward:", tot_reward)
-            image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
-            print("Action taken:", utils.directions[action])
-            print(bytes(s['message']).decode('utf-8').rstrip('\x00'))
             if not done:
+                time.sleep(wait_time)
+                timer += wait_time  # exclude the wait time from the total time
+                if clear_outputs:
+                    display.clear_output(wait=True)
+                print("Reward:", tot_reward)
+                image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
+                images.append(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
+                print("Action taken:", utils.directions[action])
+                print(bytes(s['message']).decode('utf-8').rstrip('\x00'))
+
                 # check if we are on an apple and eat it
                 s, reward, _, _, _ = check_and_eat_apple(s, env, apple_positions)
                 tot_reward += reward
@@ -154,8 +160,12 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
     print(f"Episode finished:", dic)
     print("Reward:", tot_reward)
 
-    for path in paths:
-        utils.print_path_on_map(game_map, path)
+    print(f"Simulation completed in {time.time() - timer:.2f} seconds.")
+
+    if save_dir is not None:
+        # Save the images as a video
+        utils.save_images_as_video(images, save_dir=save_dir, file_name=gif_name, fps=5)
+
     return tot_reward
 
 
