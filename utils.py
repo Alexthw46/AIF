@@ -135,7 +135,7 @@ def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> Li
     return actions
 
 
-def chebyshev_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
+def chebyshev_distance(point1: Tuple[int, int], point2: Tuple[int, int], **kwargs) -> int:
     x1, y1 = point1
     x2, y2 = point2
     return max(abs(x1 - x2), abs(y1 - y2))
@@ -147,7 +147,7 @@ def euclidean_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> floa
     return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 
-def manhattan_distance(point1: Tuple[int, int], point2: Tuple[int, int]) -> int:
+def manhattan_distance(point1: Tuple[int, int], point2: Tuple[int, int], **kwargs) -> int:
     x1, y1 = point1
     x2, y2 = point2
     return abs(x1 - x2) + abs(y1 - y2)
@@ -162,19 +162,19 @@ def cached_bfs(game_map, start, goal, path_cache):
     return dist
 
 
-def bfs_path_length(game_map, start, goal) -> int | float:
+def bfs_path_length(game_map, point1, point2) -> int | float:
     """Return shortest path length between start and goal, accounting for walls."""
-    if start == goal:
+    if point1 == point2:
         return 0
     rows, cols = game_map.shape
     visited = set()
-    queue = deque([(start, 0)])
-    visited.add(start)
+    queue = deque([(point1, 0)])
+    visited.add(point1)
 
     while queue:
         (x, y), dist = queue.popleft()
         for nx, ny in get_valid_moves(game_map, (x, y)):
-            if (nx, ny) == goal:
+            if (nx, ny) == point2:
                 return dist + 1
             if (nx, ny) not in visited:
                 visited.add((nx, ny))

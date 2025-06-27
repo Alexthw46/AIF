@@ -278,4 +278,6 @@ def make_map(map_str: str, n_apples: int, seed=None, start=None, stairs=None, pr
     else:
         lvl_gen.add_stair_down()
 
+    lvl_gen.wallify()
+
     return lvl_gen.get_des()
