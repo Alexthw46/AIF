@@ -20,13 +20,12 @@ def is_terminal(state, target: Tuple[int, int], apples: Set[Tuple[int, int]]) ->
     return pos == target and collected == apples
 
 
-def rollout_policy(game_map, state, target: Tuple[int, int], apples: Set[Tuple[int, int]]) -> float:
+def rollout_policy(game_map, state, target: Tuple[int, int], apples: Set[Tuple[int, int]], max_steps=150) -> float:
     # Random rollout policy, simulate until terminal or max steps
     pos, collected = state
     collected = set(collected)
     visited = set()
     steps = 0
-    max_steps = 150  # limit rollout length
 
     while steps < max_steps:
         if pos == target and collected == apples:
@@ -57,6 +56,18 @@ def rollout_policy(game_map, state, target: Tuple[int, int], apples: Set[Tuple[i
 
 
 def tree_policy(node, game_map, target: Tuple[int, int], apples: Set[Tuple[int, int]], C=1.4):
+    """
+    Traverse the tree from the given node using the UCB1 formula to select child nodes,
+    until a leaf or terminal node is reached.
+
+    :param node: The current MCTSNode to start selection from.
+    :param game_map: The map of the environment.
+    :param target: The target position as a tuple (row, col).
+    :param apples: Set of positions of apples to collect.
+    :param C: Exploration constant for UCB1.
+
+    :return: The selected leaf or terminal MCTSNode.
+    """
     while not is_terminal(node.state, target, apples):
         if node.children:
             # UCB1 selection
@@ -74,7 +85,7 @@ def expand(node, game_map, apples, visited_states):
     pos, collected = node.state
     collected = set(collected)
 
-    for move in get_valid_moves(game_map, pos, allow_diagonals=False):
+    for move in get_valid_moves(game_map, pos):
         new_collected = set(collected)
         if move in apples:
             new_collected.add(move)
@@ -103,7 +114,20 @@ def best_path(node):
             node = None
     return path
 
-def mcts(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], apples: Set[Tuple[int, int]], iterations=1000, policy=rollout_policy):
+
+def mcts(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], apples: Set[Tuple[int, int]],
+         iterations=1000, C=1.4) -> List[Tuple[int, int]]:
+    """
+    Perform Monte Carlo Tree Search to find a path from start to target, collecting all apples.
+
+    :param game_map: The nethack map as a numpy array.
+    :param start: The starting position as a tuple (row, col).
+    :param target: The target position as a tuple (row, col).
+    :param apples: Set of positions of apples to collect.
+    :param iterations: Number of MCTS iterations to perform.
+    :param C: Exploration constant for UCB1.
+    :return: List of positions representing the best path found.
+    """
     root = MCTSNode((start, frozenset()))
     visited_states = {root.state}
 
@@ -111,14 +135,14 @@ def mcts(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], 
         node = root
         # Selection
         while node.children:
-            node = tree_policy(node, game_map, target, apples)
+            node = tree_policy(node, game_map, target, apples, C)
         # Expansion
         if not is_terminal(node.state, target, apples):
             expand(node, game_map, apples, visited_states)
             if node.children:
                 node = random.choice(node.children)
         # Simulation
-        reward = policy(game_map, node.state, target, apples)
+        reward = rollout_policy(game_map, node.state, target, apples)
         # Backpropagation
         backpropagate(node, reward)
 

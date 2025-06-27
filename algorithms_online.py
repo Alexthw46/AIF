@@ -98,7 +98,7 @@ def frontier_search(game_map: np.ndarray) -> List[Tuple[int, int]]:
     for y in range(rows):
         for x in range(cols):
             if game_map[y, x] == ord(' '):
-                for ny, nx in get_valid_moves(game_map, (y, x), allow_diagonals=True):
+                for ny, nx in get_valid_moves(game_map, (y, x)):
                     if game_map[ny, nx] != ord(' '):
                         frontier.append((y, x))
                         break
