@@ -17,7 +17,8 @@ def stairs_reward_function(env, previous_observation, action, observation):
     return 0
 
 
-def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: float = 0.5, cropped=True, **kwargs):
+def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: float = 0.5, cropped=True, save_dir=None,
+                            gif_name='', **kwargs):
     """
     Simulates the static environment using a heuristic function.
 
@@ -39,6 +40,7 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
 
     char_map = utils.np.vectorize(chr)(game_map)
     apple_positions = utils.np.where(char_map == '%')
+    dic = {}
 
     # zip into a list of int tuples (x, y)
     apple_positions = list(zip(apple_positions[0], apple_positions[1]))
@@ -70,27 +72,35 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
     image = plt.imshow(game if cropped else game[:, 400:850])
 
     time.sleep(2)
+    timer = time.time()
     tot_reward = 0
     done = False
+    images = []
+
+    # For each action in the path, take the action and update the state
     for action in actions:
         s, reward, done, _, dic = env.step(action)
         tot_reward += reward
+
         if not done:
+            time.sleep(wait_time)
+            timer += wait_time  # exclude the wait time from the total time
+            if clear_outputs:
+                display.clear_output(wait=True)
+            image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
+            images.append(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
+            print("Action taken:", utils.directions[action])
+
             # check and eat apple
             s, reward, _, _, _ = check_and_eat_apple(s, env, apple_positions)
             tot_reward += reward
             display.display(plt.gcf())
             print("Reward:", tot_reward)
-            if clear_outputs:
-                display.clear_output(wait=True)
-            time.sleep(wait_time)
-            image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
-            print("Action taken:", utils.directions[action])
         else:
             print(f"Episode finished:", dic)
             print("Reward:", tot_reward)
             break
-    utils.print_path_on_map(game_map, path)
+    # utils.print_path_on_map(game_map, path)
     if not done:
         print("Stairs were not reached.")
 
@@ -105,6 +115,13 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
     print(f"Episode terminated with success: ", done)
     print(f"Total collected reward: ", tot_reward)
     
+
+    print(f"Simulation completed in {time.time() - timer:.2f} seconds.")
+
+    if save_dir is not None:
+        # Save the images as a video
+        utils.save_images_as_video(images, save_dir=save_dir, file_name=gif_name, fps=5)
+
     return tot_reward
 
 

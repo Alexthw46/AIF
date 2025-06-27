@@ -48,7 +48,7 @@ def bfs(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]) -
     return None
 
 
-def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], h: callable) -> list[tuple[
+def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int], h: callable, **kwargs) -> list[tuple[
     int, int]] | None:
     # initialize open and close list
     open_list = PriorityQueue()
@@ -57,7 +57,7 @@ def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]
     support_list = {}
 
     starting_state_g = 0
-    starting_state_h = h(start, target)
+    starting_state_h = h(game_map, start, target, **kwargs) if h == cached_bfs else h(start, target)
     starting_state_f = starting_state_g + starting_state_h
 
     open_list.put((starting_state_f, (start, starting_state_g)))
@@ -81,7 +81,10 @@ def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]
                 continue
             # compute neighbor g, h and f values
             neighbor_g = 1 + current_cost
-            neighbor_h = h(neighbor, target)
+            if h == cached_bfs:
+                neighbor_h = h(game_map, neighbor, target, **kwargs)
+            else:
+                neighbor_h = h(neighbor, target)
             neighbor_f = neighbor_g + neighbor_h
             parent[neighbor] = current
             neighbor_entry = (neighbor_f, (neighbor, neighbor_g))
@@ -330,7 +333,7 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
         remaining_apples = apples - collected
         visit_count[pos] += 1
 
-        candidates = get_valid_moves(game_map, pos, allow_diagonals=False)
+        candidates = get_valid_moves(game_map, pos)
         if not candidates:
             break  # dead end
 
@@ -350,12 +353,23 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
 def greedy_best_first_search(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
                              apples: Set[Tuple[int, int]], heuristic: callable = manhattan_distance) -> List[Tuple[
     int, int]] | None:
+    """
+        Greedy best-first search to find a path from start to target, collecting apples.
+
+        :param game_map: 2D numpy array representing the game map.
+        :param start: Starting coordinate as a tuple (x, y).
+        :param target: Target coordinate as a tuple (x, y).
+        :param apples: Set of coordinates (x, y) where apples are located.
+        :param heuristic: Heuristic function to estimate the cost to the target.
+        :return: List of coordinates representing the path from start to target, or None if no path is found.
+    """
+
     def evaluate_heuristic(game_map, pos, collected, apples, target, path_cache):
         remaining_apples = apples - collected
         if not remaining_apples:
             # Se non ci sono mele da raccogliere, solo distanza dalla posizione al target
             if heuristic == manhattan_distance:
-                return heuristic(pos, target)
+                return heuristic(pos, target, game_map=game_map)
             elif heuristic == cached_bfs:
                 return heuristic(game_map, pos, target, path_cache)
 
@@ -400,7 +414,7 @@ def greedy_best_first_search(game_map: np.ndarray, start: Tuple[int, int], targe
         if pos == target and collected == apples:
             return path
 
-        for move in get_valid_moves(game_map, pos, allow_diagonals=False):
+        for move in get_valid_moves(game_map, pos):
             new_collected = set(collected)
             if move in apples:
                 new_collected.add(move)
@@ -440,10 +454,9 @@ def beam_search_apple(game_map: np.ndarray,
     dist = {}
     paths = {}
 
+    cache = {}
     for a, b in itertools.combinations(all_points, 2):
-        path = a_star_apple(game_map, a, b, heuristic=manhattan_distance,
-                            apple_bonus=apple_reward,
-                            apple_positions=set(apple_positions))
+        path = a_star(game_map, a, b, h=cached_bfs, path_cache=cache)
         if not path or len(path) < 2:
             dist[(a, b)] = dist[(b, a)] = float('inf')
             paths[(a, b)] = paths[(b, a)] = []
@@ -472,7 +485,7 @@ def beam_search_apple(game_map: np.ndarray,
                     continue
 
                 path_segment = paths.get((pos, next_pt), [])
-                if not path_segment or len(path_segment) < 2:
+                if not path_segment:
                     continue
 
                 # Ensure valid connection
@@ -487,10 +500,12 @@ def beam_search_apple(game_map: np.ndarray,
                 if not np.isfinite(d):
                     continue
 
-                new_reward = reward + (apple_reward if next_pt in apple_positions else 0.0)
+                collected_along_segment = (set(path_segment[1:]) & set(apple_positions)) - visited
+                new_reward = reward + apple_reward * len(collected_along_segment)
+                new_visited = visited | collected_along_segment
+
                 new_cost = cost + d
                 new_net = new_reward - new_cost
-                new_visited = visited | {next_pt} if next_pt in apple_positions else visited
                 new_path = path_so_far + path_segment[1:]
                 candidates.append((new_net, new_reward, new_cost, next_pt, new_visited, new_path))
 
