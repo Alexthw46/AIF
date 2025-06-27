@@ -44,9 +44,19 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
 
     # zip into a list of int tuples (x, y)
     apple_positions = list(zip(apple_positions[0], apple_positions[1]))
+    # save initial number of apples 
+    initial_num_apples = len(apple_positions)
+
     print("Apple positions:", [(int(x), int(y)) for x, y in apple_positions])
 
+    start_time = time.time()
     path = fun(game_map, start, target, set(apple_positions), **kwargs)
+    end_time = time.time()
+
+    planning_time = end_time - start_time
+
+    # save path length 
+    path_length = len(path)
 
     if path is None or len(path) == 0:
         print("No path found.")
@@ -93,6 +103,18 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
     # utils.print_path_on_map(game_map, path)
     if not done:
         print("Stairs were not reached.")
+
+    # final number of apples 
+    num_remaining_apples = len(apple_positions)
+    # num. of eaten apples 
+    num_eaten_apples = initial_num_apples - num_remaining_apples
+
+    print("Number of eaten apples: ", num_eaten_apples)
+    print("Path length: ", path_length)
+    print(f"Planning time: {planning_time:.4f} seconds")
+    print(f"Episode terminated with success: ", done)
+    print(f"Total collected reward: ", tot_reward)
+    
 
     print(f"Simulation completed in {time.time() - timer:.2f} seconds.")
 
