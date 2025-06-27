@@ -7,10 +7,16 @@ Our objective is to design a custom dungeon-like environment containing **apple*
 
 ## 🧪 Task Description
 
-The agent starts in a procedurally generated maze populated with:
-- 🟡 **apple tiles** to collect (positive reward)
+The environment is a procedurally generated maze containing:
 
-The challenge is to **plan an optimal path** to collect all apple using only classical search algorithms—no learning involved.
+    🟡 Apple tiles: provide positive rewards.
+
+    🔽 Downstairs tile: marks the final goal.
+
+    🟥 Step penalty: encourages efficiency.
+
+The agent must compute an optimal path that maximizes rewards by collecting all apples and reaching the goal with minimum steps.
+We test the algorithms both in an offline setting with full observability and in an online setting with partial observability given by walls inserted in the map.  
 
 ## 🛠️ What We Do
 
@@ -23,13 +29,21 @@ The challenge is to **plan an optimal path** to collect all apple using only cla
   - **Monte Carlo Tree Search (MCTS) A\***
   - **Potential Fields A\***
   - **Beam search A\***
-  - 
-- 📊 **Benchmarking**: Algorithms are compared across various metrics:
-  - Success rate
-  - Time to plan
-  - Path length
-  - apple collected
-  - reward 
+
+## 📊 Benchmarking & Evaluation
+
+We compare each algorithm using the following metrics:
+
+    ✅ Success rate (task completion)
+
+    ⏱️ Planning time
+
+    🧭 Path length
+
+    🍎 Apples collected
+
+    🏆 Total reward
+    
 ## 📁 Project Structure
 
 ```bash
