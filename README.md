@@ -34,13 +34,12 @@ The challenge is to **plan an optimal path** to collect all apple using only cla
 
 ```bash
 .
-├── env/                 # Custom MiniHack environment code
 ├── algorithms/          # Search algorithms 
-├── algorithms_online    # Online search algorithms
-├── MCTS.py              # Monte Carlo Tree search implementation 
-├── Benchmark_Offline    # Evaluation results and logs (Offline setting)
-├── Benchmark_Online     # Evaluation results and logs (Online setting) 
+├── algorithms_online/    # Online search algorithms
+├── MCTS.py/              # Monte Carlo Tree search implementation 
+├── Benchmark_Offline/    # Evaluation results and logs (Offline setting)
+├── Benchmark_Online/     # Evaluation results and logs (Online setting) 
 ├── report/              # Final project report
-├── simulator.py         # Final project report
+├── simulator.py/         # Final project report
 ├── report/              # Final project report
 └── README.md            # This file
