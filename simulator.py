@@ -190,7 +190,7 @@ def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0
             print("Evaluating path...")
 
         t0 = time.time()
-        path = fun(game_map, start, **kwargs)
+        path = fun(game_map, start, verbose=verbose, **kwargs)
         t1 = time.time()
         planning_time_total += (t1 - t0)
 
@@ -371,7 +371,7 @@ def make_map(map_str: str, n_apples: int, seed=None, start=None, stairs=None, pr
     return lvl_gen.get_des()
 
 
-def benchmark_simulation(env_fn, algorithm_fn, seeds, param_grid, **common_kwargs):
+def benchmark_simulation(env_fn, algorithm_fn, seeds, param_grid, online=False, **common_kwargs):
     """
     Benchmarks a pathfinding algorithm under different random seeds and parameter settings.
 
@@ -401,7 +401,7 @@ def benchmark_simulation(env_fn, algorithm_fn, seeds, param_grid, **common_kwarg
             env = env_fn(seed)
 
             try:
-                result = simulate_offline_planning(
+                result = (simulate_online if online else simulate_offline_planning)(
                     env,
                     algorithm_fn,
                     verbose=False,

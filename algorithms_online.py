@@ -36,20 +36,21 @@ def a_star_online(game_map, start, **kwargs):
     return min_path if min_path else []
 
 
-def planner_online(game_map, start, planner_func, **kwargs):
+def planner_online(game_map, start, planner_func, verbose=True, **kwargs):
     """
     General online planner function for use with simulate_online.
     Takes a planning function (like mcts or greedy_best_first_online) as an argument.
     Plans a path to the nearest apple, or to the stairs if no apples remain.
     """
-    apple_positions, target = find_target(game_map, start)
-    print("Apple positions:", apple_positions)
-    print("Target:", target)
+    apple_positions, target = find_target(game_map, start, verbose=verbose)
+    if verbose:
+        print("Apple positions:", apple_positions)
+        print("Target:", target)
     return planner_func(game_map, start, target, set(apple_positions), **kwargs)
 
 
-def find_target(game_map, start):
-    print("Finding target from start:", start)
+def find_target(game_map, start, verbose=True) -> Tuple[List[Tuple[int, int]], Tuple[int, int]]:
+    if verbose: print("Finding target from start:", start)
     char_map = np.vectorize(chr)(game_map)
     apple_positions = np.where(char_map == '%')
     apple_positions = list(zip(apple_positions[0], apple_positions[1]))
@@ -57,7 +58,7 @@ def find_target(game_map, start):
     target = get_stairs_location(game_map)
 
     if target is None:
-        print("No stairs found, searching for frontier.")
+        if verbose: print("No stairs found, searching for frontier.")
         frontier = frontier_search(game_map)
         # select the closest frontier point as the target
         min_dist = float('inf')
@@ -67,16 +68,17 @@ def find_target(game_map, start):
                 min_dist = dist
                 target = pos
 
-        if target is not None:
-            print("Using frontier point as target:", target)
-        else:
-            print("No frontier found, whole map explored?")
+        if verbose:
+            if target is not None:
+                print("Using frontier point as target:", target)
+            else:
+                print("No frontier found, whole map explored?")
 
     if target is None and len(apple_positions) > 0:
         target = apple_positions[0]  # Fallback to the first apple if no stairs or frontier found
 
     if target is None:
-        print("No target found, returning empty.")
+        if verbose: print("No target found, returning empty.")
         return [], None
 
     return apple_positions, target
