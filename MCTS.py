@@ -28,7 +28,7 @@ def rollout_policy(game_map, state, target: Tuple[int, int], apples: Set[Tuple[i
     steps = 0
 
     while steps < max_steps:
-        if pos == target and collected == apples:
+        if pos == target:
             break
 
         visited.add(pos)
@@ -45,7 +45,7 @@ def rollout_policy(game_map, state, target: Tuple[int, int], apples: Set[Tuple[i
         steps += 1
 
     # Reward for collected apples + bonus if target reached after collecting all
-    reward = len(collected) * 1.0
+    reward = len(collected) * 1.25
     if pos == target and collected == apples:
         reward += 5  # bonus reward for full success
     elif pos == target:

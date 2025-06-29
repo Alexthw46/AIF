@@ -297,7 +297,7 @@ def a_star_apple(
 
 def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
                          apples: Set[Tuple[int, int]], max_steps=5000, heuristic: callable = manhattan_distance) -> \
-        List[Tuple[int, int]] | None:
+        List[Tuple[int, int]]:
     def attractive_force(pos, goal, path_cache, weight=1.0):
         if heuristic == cached_bfs:
             return -weight * heuristic(game_map, pos, goal, path_cache)
@@ -347,12 +347,12 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
         path.append(pos)
 
     print("Failed to reach target within potential field limits.")
-    return None
+    return []
 
 
 def greedy_best_first_search(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
                              apples: Set[Tuple[int, int]], heuristic: callable = manhattan_distance) -> List[Tuple[
-    int, int]] | None:
+    int, int]]:
     """
         Greedy best-first search to find a path from start to target, collecting apples.
 
@@ -424,7 +424,7 @@ def greedy_best_first_search(game_map: np.ndarray, start: Tuple[int, int], targe
                 h = evaluate_heuristic(game_map, move, new_collected, apples, target, path_cache)
                 heapq.heappush(frontier, (h, new_state, new_path))
 
-    return None  # no path found
+    return []  # no path found
 
 
 def beam_search_apple(game_map: np.ndarray,
@@ -461,7 +461,7 @@ def beam_search_apple(game_map: np.ndarray,
             dist[(a, b)] = dist[(b, a)] = float('inf')
             paths[(a, b)] = paths[(b, a)] = []
         else:
-            d = len(path) - 1
+            d = len(path) - 0.1
             dist[(a, b)] = dist[(b, a)] = d
             paths[(a, b)] = paths[(b, a)] = path
 
@@ -524,5 +524,5 @@ def beam_search_apple(game_map: np.ndarray,
         # Only keep non-terminal entries in beam to allow further expansion
         beam = [entry for entry in beam if entry[3] != target]
 
-    print(f"Best net reward: {best_net}, Path length: {len(best_path)}")
+    # print(f"Best net reward: {best_net}, Path length: {len(best_path)}")
     return best_path

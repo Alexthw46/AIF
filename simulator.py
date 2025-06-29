@@ -1,11 +1,14 @@
+import itertools
 import time
 
 import IPython.display as display
 import gymnasium as gym
 import matplotlib.pyplot as plt
+import pandas as pd
 from minihack import LevelGenerator
 from minihack import RewardManager
 from nle import nethack
+from tqdm import tqdm
 
 import utils
 
@@ -17,16 +20,25 @@ def stairs_reward_function(env, previous_observation, action, observation):
     return 0
 
 
-def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: float = 0.5, cropped=True, save_dir=None,
-                            gif_name='', **kwargs):
+def simulate_offline_planning(env, fun: callable, verbose: bool = True, clear_outputs: bool = True,
+                              wait_time: float = 0.5,
+                              cropped: bool = True, save_dir=None,
+                              gif_name: str = '', **kwargs):
     """
-    Simulates the static environment using a heuristic function.
+    Simulates the static environment using a pathfinding function.
 
     Parameters:
-    - env: The environment to simulate.
-    - fun: The heuristic function to use for simulation. Need to follow the signature:
+    :param env: The environment to simulate.
+    :param  fun: The pathfinding function to use for simulation. Need to follow the signature:
         fun(game_map, start, target, apple_positions, **kwargs)
-    - kwargs: Additional keyword arguments for the heuristic function.
+    :param verbose: Whether to print detailed information during the simulation.
+    :param clear_outputs: Whether to clear the output display after each action.
+    :param wait_time: Time to wait between actions for visualization.
+    :param cropped: Whether to use the cropped pixel observation.
+    :param save_dir: Directory to save the simulation images as a video.
+    :param gif_name: Name of the video file to save.
+
+    :param  kwargs: Additional keyword arguments for the heuristic function.
 
     Returns:
     - The result of the simulation.
@@ -47,7 +59,7 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
     # save initial number of apples 
     initial_num_apples = len(apple_positions)
 
-    print("Apple positions:", [(int(x), int(y)) for x, y in apple_positions])
+    #    print("Apple positions:", [(int(x), int(y)) for x, y in apple_positions])
 
     start_time = time.time()
     path = fun(game_map, start, target, set(apple_positions), **kwargs)
@@ -60,18 +72,19 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
 
     if path is None or len(path) == 0:
         print("No path found.")
-        return 0
-    else:
+        return 0, -1, planning_time, initial_num_apples, False, dic
+    elif verbose:
         print("Path found:")
         for (x, y) in path:
             print(x, y)
 
     actions = utils.actions_from_path(start, path[1:])
-    utils.simulate_path(path, game_map, actions)
+    if verbose:
+        utils.simulate_path(path, game_map, actions)
 
-    image = plt.imshow(game if cropped else game[:, 400:850])
+        image = plt.imshow(game if cropped else game[:, 400:850])
 
-    time.sleep(2)
+        time.sleep(2)
     timer = time.time()
     tot_reward = 0
     done = False
@@ -83,24 +96,26 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
         tot_reward += reward
 
         if not done:
-            time.sleep(wait_time)
-            timer += wait_time  # exclude the wait time from the total time
-            if clear_outputs:
-                display.clear_output(wait=True)
-            image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
-            images.append(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
-            print("Action taken:", utils.directions[action])
+            if verbose:
+                time.sleep(wait_time)
+                timer += wait_time  # exclude the wait time from the total time
+                if clear_outputs:
+                    display.clear_output(wait=True)
+                image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
+                images.append(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
+                print("Action taken:", utils.directions[action])
 
             # check and eat apple
-            s, reward, _, _, _ = check_and_eat_apple(s, env, apple_positions)
+            s, reward, _, _, _ = check_and_eat_apple(s, env, apple_positions, verbose=verbose)
             tot_reward += reward
-            display.display(plt.gcf())
-            print("Reward:", tot_reward)
+            if verbose:
+                display.display(plt.gcf())
+                print("Reward:", tot_reward)
         else:
-            print(f"Episode finished:", dic)
-            print("Reward:", tot_reward)
+            if verbose:
+                print(f"Episode finished:", dic)
+                print("Reward:", tot_reward)
             break
-    # utils.print_path_on_map(game_map, path)
     if not done:
         print("Stairs were not reached.")
 
@@ -109,106 +124,135 @@ def simulate_with_heuristic(env, fun: callable, clear_outputs=True, wait_time: f
     # num. of eaten apples 
     num_eaten_apples = initial_num_apples - num_remaining_apples
 
-    print("Number of eaten apples: ", num_eaten_apples)
-    print("Path length: ", path_length)
-    print(f"Planning time: {planning_time:.4f} seconds")
-    print(f"Episode terminated with success: ", done)
-    print(f"Total collected reward: ", tot_reward)
-    
+    if verbose:
+        print("Number of eaten apples: ", num_eaten_apples)
+        print("Path length: ", path_length)
+        print(f"Planning time: {planning_time:.4f} seconds")
+        print(f"Episode terminated with success: ", done)
+        print(f"Total collected reward: ", tot_reward)
 
-    print(f"Simulation completed in {time.time() - timer:.2f} seconds.")
+        print(f"Simulation completed in {time.time() - timer:.2f} seconds.")
 
-    if save_dir is not None:
+    if verbose and save_dir is not None:
         # Save the images as a video
         utils.save_images_as_video(images, save_dir=save_dir, file_name=gif_name, fps=5)
 
-    return tot_reward
+    return tot_reward, path_length, planning_time, num_eaten_apples, done, dic
 
 
 def simulate_online(env, fun: callable, clear_outputs=True, wait_time: float = 0.5, cropped=True, save_dir=None,
-                    gif_name='', **kwargs):
+                    gif_name='', verbose=True, **kwargs):
     """
-    Simulates the dynamic environment using a heuristic function.
+    Simulates the dynamic environment using a frontier search plus a pathfinding function.
 
     Parameters:
-    - env: The environment to simulate.
-    - fun: The heuristic function to use for simulation. Need to follow the signature:
+    :param env: The environment to simulate.
+    :param fun: The pathfinding function to use for simulation. Must follow the signature:
         fun(game_map, start, **kwargs)
-    - kwargs: Additional keyword arguments for the heuristic function.
+    :param verbose: Whether to print detailed information during the simulation.
+    :param clear_outputs: Whether to clear the output display after each action.
+    :param wait_time: Time to wait between actions for visualization.
+    :param cropped: Whether to use the cropped pixel observation.
+    :param save_dir: Directory to save the simulation images as a video.
+    :param gif_name: Name of the video file to save.
 
     Returns:
-    - The result of the simulation.
+    - tot_reward: Total reward collected.
+    - total_path_length: Sum of all path lengths followed.
+    - total_planning_time: Total time spent on planning.
+    - total_apples_eaten: Number of apples eaten.
+    - done: Whether the episode finished successfully.
+    - dic: Additional info from the environment.
     """
-
     state, _ = env.reset()
     game_map = state['chars']
     game = state['pixel_crop' if cropped else 'pixel']
 
-    image = plt.imshow(game if cropped else game[:, 400:850])
+    if verbose:
+        image = plt.imshow(game if cropped else game[:, 400:850])
+        time.sleep(2)
 
-    time.sleep(2)
     timer = time.time()
-    tot_reward = 0
+    planning_time_total = 0
+    total_path_length = 0
+    total_apples_eaten = 0
     done = False
     dic = {}
     s = state
     old_apple_positions = []
-    paths = []
     images = []
+    tot_reward = 0
+
     while not done:
         start = utils.get_player_location(game_map)
 
-        print("Evaluating path...")
-        # choose a target location and path to it
+        if verbose:
+            print("Evaluating path...")
+
+        t0 = time.time()
         path = fun(game_map, start, **kwargs)
-        paths.append(path)
-        actions = utils.actions_from_path(start, path[1:]) if path is not None else []
-        utils.simulate_path(path, game_map, actions)
-        time.sleep(wait_time)
+        t1 = time.time()
+        planning_time_total += (t1 - t0)
+
+        if path is None or len(path) == 0:
+            if verbose:
+                print("No path found.")
+            break
+
+        total_path_length += len(path)
+        actions = utils.actions_from_path(start, path[1:])
+        if verbose:
+            utils.simulate_path(path, game_map, actions)
+            time.sleep(wait_time)
+
         for action in actions:
-            # check where the apples are before moving
             apple_positions = utils.np.where(utils.np.vectorize(chr)(s['chars']) == '%')
             apple_positions = list(zip(apple_positions[0], apple_positions[1]))
-            # a new apple has been discovered
+
+            # new apple discovered — stop and replan
             if len(apple_positions) > len(old_apple_positions):
                 old_apple_positions = apple_positions
-                print("Apple discovered, recomputing...")
+                if verbose:
+                    print("Apple discovered, recomputing...")
                 break
+
             s, reward, done, _, dic = env.step(action)
             tot_reward += reward
-            display.display(plt.gcf())
-            if not done:
-                time.sleep(wait_time)
-                timer += wait_time  # exclude the wait time from the total time
-                if clear_outputs:
-                    display.clear_output(wait=True)
-                print("Reward:", tot_reward)
-                image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
-                images.append(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
-                print("Action taken:", utils.directions[action])
-                print(bytes(s['message']).decode('utf-8').rstrip('\x00'))
 
-                # check if we are on an apple and eat it
-                s, reward, _, _, _ = check_and_eat_apple(s, env, apple_positions)
+            if not done:
+                if verbose:
+                    time.sleep(wait_time)
+                    timer += wait_time
+                    if clear_outputs:
+                        display.clear_output(wait=True)
+                    print("Reward:", tot_reward)
+                    image.set_data(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
+                    images.append(s['pixel_crop'] if cropped else s['pixel'][:, 300:975])
+                    print("Action taken:", utils.directions[action])
+                    print(bytes(s['message']).decode('utf-8').rstrip('\x00'))
+
+                # eat apple if on one
+                s, reward, _, _, _ = check_and_eat_apple(s, env, apple_positions, verbose=verbose)
                 tot_reward += reward
+                total_apples_eaten += reward > 0  # assumes positive reward only when apple is eaten
             else:
                 break
+
             old_apple_positions = apple_positions
             game_map = s['chars']
 
-    print(f"Episode finished:", dic)
-    print("Reward:", tot_reward)
+    if verbose:
+        print(f"Episode finished: {dic}")
+        print("Reward:", tot_reward)
+        print(f"Simulation completed in {time.time() - timer:.2f} seconds.")
 
-    print(f"Simulation completed in {time.time() - timer:.2f} seconds.")
-
-    if save_dir is not None:
-        # Save the images as a video
+    if verbose and save_dir is not None:
         utils.save_images_as_video(images, save_dir=save_dir, file_name=gif_name, fps=5)
 
-    return tot_reward
+    return tot_reward, total_path_length, planning_time_total, total_apples_eaten, done, dic
 
 
-def check_and_eat_apple(state, env, apple_positions):
+def check_and_eat_apple(state, env, apple_positions, verbose=True):
     """
     Check if the player is on an apple and eat it.
     """
@@ -219,27 +263,29 @@ def check_and_eat_apple(state, env, apple_positions):
 
     game_map = state['chars']
     player_location = utils.get_player_location(game_map)
-    print(f"Player location: {player_location}")
-    print(f"Apple location: {apple_positions}")
+    if verbose:
+        print(f"Player location: {player_location}")
+        print(f"Apple location: {apple_positions}")
     if player_location in apple_positions:
+        if verbose: print("Found apple at:", player_location)
         # Pick up the apple
-        print("Found apple at:", player_location)
         s, _, done, _, dic = env.step(PICKUP)
-        print("ACTION_TAKEN: PICKUP")
+        if verbose: print("ACTION_TAKEN: PICKUP")
         apple_positions.remove(player_location)  # Remove the apple from the list
         s, _, done, _, dic = env.step(EAT)
         # What do you want to eat?[g or *]
         msg = bytes(s['message']).decode('utf-8').rstrip('\x00')
-        print(msg)
+        if verbose: print(msg)
         food_char = msg.split('[')[1][0]  # Because of the way the message in NetHack works
 
         # print("Food character to eat:", food_char)
         # Eat the apple
         # Open inventory to find the apple letter
         s, reward, done, boh, dic = env.step(env.unwrapped.actions.index(ord(food_char)))
-        print("ACTION_TAKEN: EAT", food_char)
-        msg = bytes(s['message']).decode('utf-8').rstrip('\x00')
-        print(msg)
+        if verbose:
+            print("ACTION_TAKEN: EAT", food_char)
+            msg = bytes(s['message']).decode('utf-8').rstrip('\x00')
+            print(msg)
         return s, reward, done, boh, dic
 
     # If not on an apple, just return the state
@@ -249,6 +295,9 @@ def check_and_eat_apple(state, env, apple_positions):
 def create_env(map, penalty_time: float = -0.1, apple_reward: float = 0.75) -> gym.Env:
     """
     Create a MiniHack environment with the specified map and reward settings.
+    :param map: The map to use for the environment.
+    :param penalty_time: The penalty time for each step taken.
+    :param apple_reward: The reward for eating an apple.
     """
 
     MOVE_ACTIONS = tuple(nethack.CompassDirection)
@@ -320,3 +369,64 @@ def make_map(map_str: str, n_apples: int, seed=None, start=None, stairs=None, pr
     lvl_gen.wallify()
 
     return lvl_gen.get_des()
+
+
+def benchmark_simulation(env_fn, algorithm_fn, seeds, param_grid, **common_kwargs):
+    """
+    Benchmarks a pathfinding algorithm under different random seeds and parameter settings.
+
+    Parameters:
+    - env_fn: A callable to create the environment. Must accept a seed argument.
+    - algorithm_fn: The pathfinding function to benchmark.
+    - seeds: A list of seeds for environment randomization.
+    - param_grid: A dict of parameter lists to explore (e.g., {'beam_width': [3, 5]}).
+    - num_runs: Number of runs per combination of parameters and seed.
+    - common_kwargs: Additional static keyword arguments for simulate_offline_planning.
+
+    Returns:
+    - A pandas DataFrame of the results.
+    """
+
+    results = []
+    param_keys = list(param_grid.keys())
+    param_combinations = list(itertools.product(*param_grid.values()))
+
+    total = len(seeds) * len(param_combinations)
+    pbar = tqdm(total=total, desc="Benchmarking")
+
+    for seed in seeds:
+        for param_values in param_combinations:
+            param_dict = dict(zip(param_keys, param_values))
+
+            env = env_fn(seed)
+
+            try:
+                result = simulate_offline_planning(
+                    env,
+                    algorithm_fn,
+                    verbose=False,
+                    wait_time=0.0,
+                    **param_dict,
+                    **common_kwargs
+                )
+                (tot_reward, path_len, plan_time, apples_eaten, success, episode_info) = result
+            except Exception as e:
+                print(f"[!] Failed: seed={seed}, params={param_dict} -> {e}")
+                tot_reward, path_len, plan_time, apples_eaten, success, episode_info = [None] * 6
+
+            result_row = {
+                'seed': seed,
+                **param_dict,
+                'reward': tot_reward,
+                'path_length': path_len,
+                'planning_time': plan_time,
+                'apples_eaten': apples_eaten,
+                'success': success,
+                **episode_info  # you can store custom flags from your sim here
+            }
+
+            results.append(result_row)
+            pbar.update(1)
+
+    pbar.close()
+    return pd.DataFrame(results)

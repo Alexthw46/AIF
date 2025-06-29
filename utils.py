@@ -207,7 +207,7 @@ def randomize_apple_positions(
 
     apple_positions = []
     lines = [line.rstrip() for line in map_str.strip().split('\n')]
-    print(f"Placing {num_apple} apples between ({min_x}, {min_y}) and ({max_x}, {max_y})")
+    # print(f"Placing {num_apple} apples between ({min_x}, {min_y}) and ({max_x}, {max_y})")
     while len(apple_positions) < num_apple:
         x = random.randint(min_x, max_x)
         y = random.randint(min_y, max_y)
