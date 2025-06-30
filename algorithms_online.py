@@ -43,11 +43,30 @@ def planner_online(game_map, start, planner_func, verbose=True, **kwargs):
     Plans a path to the nearest apple, or to the stairs if no apples remain.
     """
     apple_positions, target = find_target(game_map, start, verbose=verbose)
+    if target is None:
+        print("No target found, returning empty.")
+        return []
     if verbose:
         print("Apple positions:", apple_positions)
         print("Target:", target)
     return planner_func(game_map, start, target, set(apple_positions), **kwargs)
 
+
+def score_frontier(game_map: np.ndarray, start: Tuple[int, int], frontier_cell: Tuple[int, int]) -> float:
+    """
+    Score the frontier tiles based on their distance from the start position and number of adjacent unknown tiles.
+    """
+    path_len = bfs_path_length(game_map, start, frontier_cell)
+    if path_len == float('inf') or path_len == 0:
+        return -float('inf')  # Skip unreachable or current position
+
+    # Count unknown tiles adjacent to the frontier cell
+    info_gain = 0
+    for ny, nx in get_valid_moves(game_map, frontier_cell):
+        if game_map[ny, nx] == ord(' '):  # Unknown tile
+            info_gain += 1
+
+    return info_gain / path_len
 
 def find_target(game_map, start, verbose=True) -> Tuple[List[Tuple[int, int]], Tuple[int, int]]:
     if verbose: print("Finding target from start:", start)
@@ -60,12 +79,11 @@ def find_target(game_map, start, verbose=True) -> Tuple[List[Tuple[int, int]], T
     if target is None:
         if verbose: print("No stairs found, searching for frontier.")
         frontier = frontier_search(game_map)
-        # select the closest frontier point as the target
-        min_dist = float('inf')
+        best_score = -float('inf')
         for pos in frontier:
-            dist = bfs_path_length(game_map, start, pos)
-            if dist < min_dist:
-                min_dist = dist
+            score = score_frontier(game_map, start, pos)
+            if score > best_score:
+                best_score = score
                 target = pos
 
         if verbose:
