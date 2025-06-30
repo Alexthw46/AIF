@@ -296,7 +296,7 @@ def a_star_apple(
 
 
 def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
-                         apples: Set[Tuple[int, int]], max_steps=5000, heuristic: callable = manhattan_distance) -> \
+                         apples: Set[Tuple[int, int]], max_steps=5000, heuristic: callable = manhattan_distance, weight_noise=0.3, weight_target = 1.0, weight_apple=0.75, modality_potential = "sum" ) -> \
         List[Tuple[int, int]]:
     def attractive_force(pos, goal, path_cache, weight=1.0):
         if heuristic == cached_bfs:
@@ -304,16 +304,30 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
         elif heuristic == manhattan_distance:
             return -weight * heuristic(pos, goal)
 
-    def total_potential(pos, remaining_apples, target, path_cache):
-        potential = attractive_force(pos, target, path_cache, weight=1)
-        for apple in remaining_apples:
-            potential += attractive_force(pos, apple, path_cache, weight=0.75)
-        # Add small random noise to break ties/local minima
-        potential += random.uniform(-0.3, 0.3)
-        # Add repulsion from previous visits
-        potential -= visit_count[pos] * 5
-        return potential
+    def total_potential(pos, remaining_apples, target, path_cache, weight_target, weight_apple, modality_potential):
+        if (modality_potential == "max"):
+            # Compute individual attractive forces
+            forces = [attractive_force(pos, target, path_cache, weight=weight_target)]
+            forces += [attractive_force(pos, apple, path_cache, weight=weight_apple) for apple in remaining_apples]
 
+            # Use the maximum attractive force
+            potential = max(forces)
+            
+            # Add noise and visit penalty
+            potential += random.uniform(-0.1, 0.1) * weight_noise
+            potential -= visit_count[pos] * 5
+
+            return potential
+        else:
+            potential = attractive_force(pos, target, path_cache, weight=weight_target)
+            for apple in remaining_apples:
+                potential += attractive_force(pos, apple, path_cache, weight=weight_apple)
+            # Add small random noise to break ties/local minima
+            potential += random.uniform(-0.1, 0.1) * weight_noise
+            # Add repulsion from previous visits
+            potential -= visit_count[pos] * 5
+            return potential
+        
     pos = start
     collected = set()
     path = [pos]
@@ -337,7 +351,7 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
         if not candidates:
             break  # dead end
 
-        best_move = max(candidates, key=lambda m: total_potential(m, remaining_apples, target, path_cache))
+        best_move = max(candidates, key=lambda m: total_potential(m, remaining_apples, target, path_cache, weight_target, weight_apple, modality_potential))
 
         if visit_count[best_move] > 10 or best_move == pos:
             print("being stuck")
