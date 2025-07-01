@@ -275,3 +275,66 @@ def save_images_as_video(images, save_dir: str, file_name: str, fps):
     filename = file_name + '.gif'
     print(f"Saving video to {os.path.join(save_dir, filename)}")
     ani.save(os.path.join(save_dir, filename), writer='ffmpeg', fps=fps)
+
+
+def plot_3d_surfaces(
+        agg_df,
+        x_col,
+        y_col,
+        z1_col,
+        z2_col,
+        z1_label="Metric 1",
+        z2_label="Metric 2",
+        z1_title=None,
+        z2_title=None,
+        figsize=(14, 6)
+):
+    """
+    Creates two 3D surface plots for given metrics over specified parameters.
+
+    Parameters:
+    - agg_df: Aggregated DataFrame (grouped and averaged)
+    - x_col: Column name for X-axis (e.g., 'beam_width', 'weight')
+    - y_col: Column name for Y-axis (e.g., 'apple_reward', 'apple_bonus')
+    - z1_col: First metric column for Z-axis (e.g., 'avg_reward')
+    - z2_col: Second metric column for Z-axis (e.g., 'avg_path_length')
+    - z1_label: Z-axis label for the first plot
+    - z2_label: Z-axis label for the second plot
+    - z1_title: Title for the first plot
+    - z2_title: Title for the second plot
+    - figsize: Size of the figure
+    """
+    x_vals = sorted(agg_df[x_col].unique())
+    y_vals = sorted(agg_df[y_col].unique())
+
+    X, Y = np.meshgrid(x_vals, y_vals)
+    Z1 = np.full_like(X, np.nan, dtype=float)
+    Z2 = np.full_like(X, np.nan, dtype=float)
+
+    for i, y_val in enumerate(y_vals):
+        for j, x_val in enumerate(x_vals):
+            row = agg_df[(agg_df[x_col] == x_val) & (agg_df[y_col] == y_val)]
+            if not row.empty:
+                Z1[i, j] = row[z1_col].values[0]
+                Z2[i, j] = row[z2_col].values[0]
+
+    fig = plt.figure(figsize=figsize)
+
+    # Plot 1
+    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+    surf1 = ax1.plot_surface(X, Y, Z1, cmap="viridis", edgecolor='k', alpha=0.85)
+    ax1.set_title(z1_title or f"{z1_label} vs {x_col} & {y_col}")
+    ax1.set_xlabel(x_col)
+    ax1.set_ylabel(y_col)
+    fig.colorbar(surf1, ax=ax1, shrink=0.5, aspect=10)
+
+    # Plot 2
+    ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+    surf2 = ax2.plot_surface(X, Y, Z2, cmap="plasma", edgecolor='k', alpha=0.85)
+    ax2.set_title(z2_title or f"{z2_label} vs {x_col} & {y_col}")
+    ax2.set_xlabel(x_col)
+    ax2.set_ylabel(y_col)
+    fig.colorbar(surf2, ax=ax2, shrink=0.5, aspect=10)
+
+    plt.tight_layout()
+    plt.show()
