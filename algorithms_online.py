@@ -52,7 +52,7 @@ def planner_online(game_map, start, planner_func, verbose=True, **kwargs):
     return planner_func(game_map, start, target, set(apple_positions), **kwargs)
 
 
-def score_frontier(game_map: np.ndarray, start: Tuple[int, int], frontier_cell: Tuple[int, int]) -> float:
+def score_frontier(game_map: np.ndarray, start: Tuple[int, int], frontier_cell: Tuple[int, int], info_gain=0) -> float:
     """
     Score the frontier tiles based on their distance from the start position and number of adjacent unknown tiles.
     """
@@ -61,12 +61,12 @@ def score_frontier(game_map: np.ndarray, start: Tuple[int, int], frontier_cell: 
         return -float('inf')  # Skip unreachable or current position
 
     # Count unknown tiles adjacent to the frontier cell
-    info_gain = 0
     for ny, nx in get_valid_moves(game_map, frontier_cell):
         if game_map[ny, nx] == ord(' '):  # Unknown tile
             info_gain += 1
 
     return info_gain / path_len
+
 
 def find_target(game_map, start, verbose=True) -> Tuple[List[Tuple[int, int]], Tuple[int, int]]:
     if verbose: print("Finding target from start:", start)
@@ -74,12 +74,15 @@ def find_target(game_map, start, verbose=True) -> Tuple[List[Tuple[int, int]], T
     apple_positions = np.where(char_map == '%')
     apple_positions = list(zip(apple_positions[0], apple_positions[1]))
 
+    # Stairs are the primary target
     target = get_stairs_location(game_map)
 
+    # If stairs are not found, decide based on apples or frontier
     if target is None:
-        if verbose: print("No stairs found, searching for frontier.")
+        if verbose: print("No stairs found, evaluating frontier.")
         frontier = frontier_search(game_map)
         best_score = -float('inf')
+        # Score the frontier tiles to find the one with the best information gain
         for pos in frontier:
             score = score_frontier(game_map, start, pos)
             if score > best_score:
@@ -92,12 +95,27 @@ def find_target(game_map, start, verbose=True) -> Tuple[List[Tuple[int, int]], T
             else:
                 print("No frontier found, whole map explored?")
 
-    if target is None and len(apple_positions) > 0:
-        target = apple_positions[0]  # Fallback to the first apple if no stairs or frontier found
+        # If apples are available, consider them as well
+        if len(apple_positions) > 0:
+            best_apple = None
+            best_apple_score = -float('inf')
+            for apple in apple_positions:
+                score = score_frontier(game_map, start, apple, info_gain=1)  # Apples give a fixed info gain of 1
+                if score > best_apple_score:
+                    best_apple_score = score
+                    best_apple = apple
+
+            # Decide whether to target an apple or the frontier, if both are available
+            if target is not None:
+                if best_apple_score > score_frontier(game_map, start, target):
+                    target = best_apple
+                    if verbose: print("Targeting apple instead of frontier:", target)
+            else:
+                target = best_apple
+                if verbose: print("Targeting closest apple as no frontier found:", target)
 
     if target is None:
         if verbose: print("No target found, returning empty.")
-        return [], None
 
     return apple_positions, target
 
