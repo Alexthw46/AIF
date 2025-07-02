@@ -3,7 +3,7 @@
 ## 🎯 Project Overview
 
 This project explores classical Artificial Intelligence (GOFAI) search and planning algorithms within the [MiniHack](https://minihack.readthedocs.io/en/latest/) environment, a reinforcement learning platform built on top of NetHack. 
-Our objective is to design a custom dungeon-like environment containing **apple** (reward), and evaluate different **search algorithms** to complete a task: **collect apples while reaching the downstairs with thw minimum number of steps in order to maximize the reward**.
+Our objective is to design a custom dungeon-like environment containing **apple** (reward), and evaluate different **search algorithms** to complete a task: **collect apples while reaching the downstairs with the minimum number of steps in order to maximize the reward**.
 
 ## 🧪 Task Description
 
