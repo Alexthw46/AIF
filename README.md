@@ -29,6 +29,7 @@ We test the algorithms both in an offline setting with full observability and in
   - **Monte Carlo Tree Search (MCTS)**
   - **Potential Fields**
   - **Beam search**
+- Offline setting VS Online setting
 
 ## 📊 Benchmarking & Evaluation
 
