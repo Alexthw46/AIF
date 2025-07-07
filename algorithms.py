@@ -105,6 +105,16 @@ def a_star(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int]
 # ---------------------------------------------
 
 def heuristic_with_apples_MST(current: Tuple[int, int], apples: Set[Tuple[int, int]], target: Tuple[int, int]) -> int:
+    """
+        Heuristic function that estimates the minimal cost to collect all apples and reach the target.
+        It computes the cost as the length of the minimum spanning tree (MST) over the current position,
+        all remaining apples, and the target, using Manhattan distance as edge weights.
+
+        :param current: Current position as a tuple (x, y).
+        :param apples: Set of positions (x, y) where apples are located.
+        :param target: Target position as a tuple (x, y).
+        :return: Estimated minimal cost to collect all apples and reach the target.
+        """
     points = list(apples)
     if not points:
         return manhattan_distance(current, target)
@@ -147,6 +157,16 @@ def heuristic_with_apples_MST(current: Tuple[int, int], apples: Set[Tuple[int, i
 def a_star_collect_apples(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
                           apples: Set[Tuple[int, int]], weight: float = 1.0) -> \
         list[tuple[int, int]] | None:
+    """
+        A* search algorithm to find a path from start to target while collecting all apples.
+        The heuristic combines the cost to the target and the minimum spanning tree (MST) over remaining apples.
+        :param game_map: 2D numpy array representing the game map.
+        :param start: Starting coordinate as a tuple (x, y).
+        :param target: Target coordinate as a tuple (x, y).
+        :param apples: Set of coordinates (x, y) where apples are located.
+        :param weight: Weighting factor for the heuristic.
+        :return: List of coordinates representing the path from start to target collecting all apples, or None if not possible.
+    """
     open_list = PriorityQueue()
     close_set = set()
     support_list = {}
@@ -296,8 +316,29 @@ def a_star_apple(
 
 
 def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: Tuple[int, int],
-                         apples: Set[Tuple[int, int]], max_steps=5000, heuristic: callable = manhattan_distance, weight_noise=0.3, weight_target = 1.0, weight_apple=0.75, modality_potential = "sum" ) -> \
+                         apples: Set[Tuple[int, int]], max_steps=5000, heuristic: callable = manhattan_distance,
+                         weight_noise=0.3, weight_target=1.0, weight_apple=0.75, modality_potential="sum") -> \
         List[Tuple[int, int]]:
+    """
+        Pathfinding using a potential field approach to collect apples and reach the target.
+
+        This method simulates an agent moving in a field where the target and apples exert attractive forces,
+        and previously visited positions exert repulsive forces. The agent greedily moves to the neighbor with
+        the highest potential (most attractive) at each step, optionally adding noise to break ties and avoid
+        local minima.
+
+        :param game_map: 2D numpy array representing the game map.
+        :param start: Starting coordinate as a tuple (x, y).
+        :param target: Target coordinate as a tuple (x, y).
+        :param apples: Set of coordinates (x, y) where apples are located.
+        :param max_steps: Maximum number of steps to take before giving up.
+        :param heuristic: Heuristic function to estimate distance (default: manhattan_distance).
+        :param weight_noise: Weight of random noise added to the potential.
+        :param weight_target: Weight of the attractive force towards the target.
+        :param weight_apple: Weight of the attractive force towards apples.
+        :param modality_potential: How to combine potentials ("sum" or "max").
+        :return: List of coordinates representing the path from start to target, or an empty list if not found.
+    """
     def attractive_force(pos, goal, path_cache, weight=1.0):
         if heuristic == cached_bfs:
             return -weight * heuristic(game_map, pos, goal, path_cache)
@@ -312,7 +353,7 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
 
             # Use the maximum attractive force
             potential = max(forces)
-            
+
             # Add noise and visit penalty
             potential += random.uniform(-0.1, 0.1) * weight_noise
             potential -= visit_count[pos] * 5
@@ -327,7 +368,7 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
             # Add repulsion from previous visits
             potential -= visit_count[pos] * 5
             return potential
-        
+
     pos = start
     collected = set()
     path = [pos]
@@ -351,7 +392,9 @@ def potential_field_path(game_map: np.ndarray, start: Tuple[int, int], target: T
         if not candidates:
             break  # dead end
 
-        best_move = max(candidates, key=lambda m: total_potential(m, remaining_apples, target, path_cache, weight_target, weight_apple, modality_potential))
+        best_move = max(candidates,
+                        key=lambda m: total_potential(m, remaining_apples, target, path_cache, weight_target,
+                                                      weight_apple, modality_potential))
 
         if visit_count[best_move] > 10 or best_move == pos:
             print("being stuck")

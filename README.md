@@ -23,8 +23,7 @@ We test the algorithms both in an offline setting with full observability and in
 - 🔧 **Custom Environment Design**: We define a personalized MiniHack map with structured room layouts, apple locations, reward manager.
 - 🔍 **Algorithm Implementation**: We implement and test multiple search-based planning algorithms:
   - **A\* Search**
-  - **Online A\***
-  - **Weighted A\***
+  - **Weighted A\*.**
   - **Best-first search (greedy variant)**
   - **Monte Carlo Tree Search (MCTS)**
   - **Potential Fields**

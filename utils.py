@@ -45,6 +45,16 @@ def is_wall(position_element) -> bool:
 def get_valid_moves(game_map: np.ndarray, current_position: Tuple[int, int], avoid_stairs=False,
                     allow_diagonals=True) -> List[
     Tuple[int, int]]:
+    """
+        Returns a list of valid moves from the current position on the game map.
+
+        :param game_map: The map of the game, with each cell representing a tile.
+        :param current_position: The current (x, y) position.
+        :param avoid_stairs: If True, treat stairs ('>') as obstacle.
+        :param allow_diagonals: If True, include diagonal moves.
+
+        :return: List of valid (x, y) positions that can be moved to.
+    """
     x_limit, y_limit = game_map.shape
     valid = []
     x, y = current_position
@@ -105,6 +115,13 @@ def get_valid_moves(game_map: np.ndarray, current_position: Tuple[int, int], avo
 
 
 def actions_from_path(start: Tuple[int, int], path: List[Tuple[int, int]]) -> List[int]:
+    """
+       Converts a path (list of positions) into a list of action indices based on movement direction.
+
+       :param start: The starting position as a tuple (y, x).
+       :param path: A list of positions (tuples) representing the path to follow.
+       :return: A list of action indices corresponding to the moves between positions.
+       """
     actions = []
     y_s, x_s = start
 

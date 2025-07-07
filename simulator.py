@@ -306,7 +306,7 @@ def create_env(map, penalty_time: float = -0.1, apple_reward: float = 0.75) -> g
 
     # Define a reward manager
     reward_manager = RewardManager()
-    # Rward for eating an apple
+    # Reward for eating an apple
     reward_manager.add_eat_event("apple", reward=apple_reward, repeatable=True, terminal_required=False,
                                  terminal_sufficient=False)
     # Will never be achieved, but insures the environment keeps running until the stairs are reached

@@ -10,6 +10,7 @@ def a_star_online(game_map, start, **kwargs):
     """
     Online A* algorithm for use with simulate_online.
     Plans a path to the nearest apple, or to the stairs if no apples remain.
+    More similar to the a_star_collect_apples function, but adapted for online use.
     """
     char_map = np.vectorize(chr)(game_map)
     apple_positions = np.where(char_map == '%')
@@ -69,6 +70,24 @@ def score_frontier(game_map: np.ndarray, start: Tuple[int, int], frontier_cell: 
 
 
 def find_target(game_map, start, verbose=True) -> Tuple[List[Tuple[int, int]], Tuple[int, int]]:
+    """
+        Determines the next target for the agent to pursue.
+
+        Finds all apple positions and the stairs location. If stairs are not found, evaluates frontier tiles
+        (known tiles adjacent to unknown space) and scores them for information gain. If apples are available,
+        scores them as well and chooses between the best apple and the best frontier tile. Returns the list of
+        apple positions and the chosen target position.
+
+        Args:
+            game_map: 2D numpy array representing the map.
+            start: Tuple of (y, x) for the agent's current position.
+            verbose: If True, prints debug information.
+
+        Returns:
+            Tuple containing:
+                - List of (y, x) tuples for apple positions.
+                - (y, x) tuple for the chosen target, or None if no target is found.
+        """
     if verbose: print("Finding target from start:", start)
     char_map = np.vectorize(chr)(game_map)
     apple_positions = np.where(char_map == '%')
@@ -135,8 +154,11 @@ def frontier_search(game_map: np.ndarray) -> List[Tuple[int, int]]:
 
     for y in range(rows):
         for x in range(cols):
+            # Check if the current tile is unknown
             if game_map[y, x] == ord(' '):
+                # Check moore neighborhood for walkable tiles
                 for ny, nx in get_valid_moves(game_map, (y, x)):
+                    # Check if the adjacent tile is known
                     if game_map[ny, nx] != ord(' '):
                         frontier.append((y, x))
                         break
